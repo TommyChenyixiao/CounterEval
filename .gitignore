@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Large data files
+*.pkl
+*.DS_Store
 # Distribution / packaging
 .Python
 build/
