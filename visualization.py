@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from datasets import load_data
 from datasets import preprocess_pyg
 
-
 def visualize_graph_simple(data, node_color='lightblue', edge_color='gray'):
     """
     Visualize a single graph from the PyG dataset without showing vectors.
@@ -29,6 +28,8 @@ def visualize_graph_simple(data, node_color='lightblue', edge_color='gray'):
     nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=10, font_color='black')
 
     plt.title("Sample Graph Visualization")
+    
+    # Save the plot before showing
     plt.savefig('sample_graph.png', dpi=300, bbox_inches='tight')
     plt.show()
 
@@ -71,9 +72,6 @@ def draw_soccer_field(ax=None):
 def identify_teams_and_ball(data):
     """
     Identifies the ball and teams based on the attacking team flag.
-    - Ball: The node with the highest degree.
-    - Team 1: Nodes with Attacking Team Flag = 1 (attacking team).
-    - Team 2: Nodes with Attacking Team Flag = 0 (defensive team).
     """
     # Convert PyG data to a NetworkX graph
     G = to_networkx(data, to_undirected=True)
@@ -91,7 +89,6 @@ def identify_teams_and_ball(data):
 def visualize_soccer_graph(data):
     """
     Visualizes the soccer graph on a 2D soccer field with a legend.
-    - Identifies the ball and teams based on the attacking team flag.
     """
     # Identify the ball and teams based on the flag
     G, ball_node, team1_nodes, team2_nodes = identify_teams_and_ball(data)
@@ -121,11 +118,6 @@ def visualize_soccer_graph(data):
     # Draw nodes (players/ball)
     nx.draw_networkx_nodes(G, node_positions, node_color=node_colors, node_size=300, ax=ax)
 
-    # # Draw edges within teams and between team members and the ball
-    # for u, v in G.edges():
-    #     if (u == ball_node or v == ball_node) or (u in team1_nodes and v in team1_nodes) or (u in team2_nodes and v in team2_nodes):
-    #         nx.draw_networkx_edges(G, node_positions, edgelist=[(u, v)], edge_color='gray', ax=ax)
-
     # Add labels for node indices
     nx.draw_networkx_labels(G, node_positions, ax=ax, font_size=10, font_color='black')
 
@@ -136,9 +128,10 @@ def visualize_soccer_graph(data):
     ax.legend(handles=legend_handles, loc='upper right')
 
     plt.title("Sample Graph Visualization in Soccer Field")
+    
+    # Save the plot before showing
     plt.savefig('soccer_graph.png', dpi=300, bbox_inches='tight')
     plt.show()
-
 
 # Load the data
 data = load_data.get_data('./datasets/women.pkl', local=True)
