@@ -17,7 +17,7 @@ To create and set up a new Conda environment named `casestudy`, follow these ste
    conda activate casestudy
    ```
 
-3.**Install dependencies:**
+3. **Install dependencies:**
   
   ```
   pip install -r requirements.txt
