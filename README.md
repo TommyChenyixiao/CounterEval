@@ -32,7 +32,9 @@ This project explores the integration of attention-based Graph Neural Networks (
 ### Data Description
 
 The dataset contains 20,863 graphs from MLS, NWSL, and international women's soccer matches, with features like positional coordinates, velocity, and distance to goal. Each graph is labeled based on whether the counterattack was successful.
+
 ![Sample Graph Visualization](<sample_graph.png>)
+
 ![Sample Graph Visualization in Soccer Field](<soccer_graph.png>)
 
 
