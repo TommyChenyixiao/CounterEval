@@ -27,7 +27,7 @@ To create and set up a new Conda environment named `casestudy`, follow these ste
 
 This project explores the integration of attention-based Graph Neural Networks (GNNs) and graph transformers for classifying soccer counterattacks. These models aim to capture complex interactions and dependencies, using GNNExplainer for enhanced interpretability. The evaluation will focus on accuracy, log-loss, and interpretability.
 ![Example Sequence Prediction](img/attack.gif)
-
+*Figure: Example of sequence prediction in action (source: [ussf_ssac_23_soccer_gnn](https://github.com/USSoccerFederation/ussf_ssac_23_soccer_gnn))*.
 ## Methodology
 
 ### Data Description
