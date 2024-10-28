@@ -31,7 +31,7 @@ layers = 3  # Number of GCN layers
 
 # Train/validation/test split
 train_size = int(0.7 * len(data_list))
-val_size = int(0.2 * len(data_list))
+val_size = int(0.15 * len(data_list))
 test_size = len(data_list) - train_size - val_size
 
 train_data, val_data, test_data = torch.utils.data.random_split(data_list, [train_size, val_size, test_size])
