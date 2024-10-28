@@ -32,15 +32,16 @@ This project explores the integration of attention-based Graph Neural Networks (
 ### Data Description
 
 The dataset contains 20,863 graphs from MLS, NWSL, and international women's soccer matches, with features like positional coordinates, velocity, and distance to goal. Each graph is labeled based on whether the counterattack was successful.
-
+![Sample Graph Visualization](<sample_graph.png>)
+![Sample Graph Visualization in Soccer Field](<soccer_graph.png>)
 
 
 ### Proposed Architectures
 
-1. **Attention-Based GNN:** 
+- **Attention-Based GNN:** 
    - Utilizes attention layers to prioritize significant nodes and edges, improving feature aggregation for capturing complex interactions.
 
-2. **Graph Transformers:** 
+- **Graph Transformers:** 
    - Adapts self-attention layers to handle both local and global dependencies. Incorporates positional encoding and a feedforward neural network for final classification.
 
 ### Interpretability with GNNExplainer
@@ -54,8 +55,8 @@ GNNExplainer will provide insights into which nodes, edges, and features contrib
 
 ## Expected Outcomes
 
-1. Improved accuracy in graph classification over traditional GNN models.
-2. Enhanced interpretability through GNNExplainer, offering detailed insights into influential graph components.
+- Improved accuracy in graph classification over traditional GNN models.
+- Enhanced interpretability through GNNExplainer, offering detailed insights into influential graph components.
 
 ## Timeline
 
