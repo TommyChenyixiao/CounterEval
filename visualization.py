@@ -29,10 +29,8 @@ def visualize_graph_simple(data, node_color='lightblue', edge_color='gray'):
     nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=10, font_color='black')
 
     plt.title("Sample Graph Visualization")
+    plt.savefig('sample_graph.png', dpi=300, bbox_inches='tight')
     plt.show()
-
-    # Save the plot
-    plt.savefig('sample_graph.png')
 
 def draw_soccer_field(ax=None):
     """
@@ -138,10 +136,8 @@ def visualize_soccer_graph(data):
     ax.legend(handles=legend_handles, loc='upper right')
 
     plt.title("Sample Graph Visualization in Soccer Field")
+    plt.savefig('soccer_graph.png', dpi=300, bbox_inches='tight')
     plt.show()
-    
-    # Save the plot
-    plt.savefig('soccer_graph.png')
 
 
 # Load the data
