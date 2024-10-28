@@ -26,6 +26,7 @@ To create and set up a new Conda environment named `casestudy`, follow these ste
 ## Project Overview
 
 This project explores the integration of attention-based Graph Neural Networks (GNNs) and graph transformers for classifying soccer counterattacks. These models aim to capture complex interactions and dependencies, using GNNExplainer for enhanced interpretability. The evaluation will focus on accuracy, log-loss, and interpretability.
+![Example Sequence Prediction](img/attack.gif)
 
 ## Methodology
 
@@ -33,9 +34,9 @@ This project explores the integration of attention-based Graph Neural Networks (
 
 The dataset contains 20,863 graphs from MLS, NWSL, and international women's soccer matches, with features like positional coordinates, velocity, and distance to goal. Each graph is labeled based on whether the counterattack was successful.
 
-![Sample Graph Visualization](<sample_graph.png>)
+![Sample Graph Visualization](<img/sample_graph.png>)
 
-![Sample Graph Visualization in Soccer Field](<soccer_graph.png>)
+![Sample Graph Visualization in Soccer Field](<img/soccer_graph.png>)
 
 
 ### Proposed Architectures
