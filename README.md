@@ -12,11 +12,13 @@ To create and set up a new Conda environment named `casestudy`, follow these ste
    ```
    
 2. **Activate the environment:**
+
    ```
-   conda activate casestuyd
+   conda activate casestudy
    ```
 
 3.**Install dependencies:**
+  
   ```
   pip install -r requirements.txt
   ```
@@ -30,6 +32,8 @@ This project explores the integration of attention-based Graph Neural Networks (
 ### Data Description
 
 The dataset contains 20,863 graphs from MLS, NWSL, and international women's soccer matches, with features like positional coordinates, velocity, and distance to goal. Each graph is labeled based on whether the counterattack was successful.
+
+
 
 ### Proposed Architectures
 
