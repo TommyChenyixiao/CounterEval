@@ -1,0 +1,1 @@
+system("sh scripts/get_raw_dataset.sh")
