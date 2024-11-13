@@ -52,6 +52,9 @@ def convert_data_full_frame(file):
     final_df = pd.concat(df_list, ignore_index=True)
     final_df['new_id'] = final_df.groupby(['game_id', 'success']).ngroup()
     final_df['adjusted_frame_id'] = final_df['frame_id'] - final_df.groupby(['game_id', 'success'])['frame_id'].transform('min')
+    # game_id mapping
+    game_id_map = final_df[['game_id', 'success', 'new_id']].drop_duplicates()
+    
     final_df['game_id'] = final_df['new_id'].astype(int)
     final_df['frame_id'] = final_df['adjusted_frame_id'].astype(int)
     final_df.drop(columns=['new_id', 'adjusted_frame_id'], inplace=True)
@@ -63,7 +66,10 @@ def convert_data_full_frame(file):
     with h5py.File(f"processed_data/{filename}_node_features.h5", "w") as f:
         for idx, (key, arr) in enumerate(arr_dict.items()):
             arr = np.stack(arr, axis=0)
-            f.create_dataset(f"node_features_{key}", data=arr)
+            game_id, success = key.split('_')
+            new_id = game_id_map.loc[(game_id_map['game_id'] == int(game_id)) & (game_id_map['success'] == int(success)), 'new_id'].values[0]
+            suffix = f"{new_id}_{success}"
+            f.create_dataset(f"node_features_{suffix}", data=arr)
     logger.info(f"{filename} - Node Features: {len(arr_dict)}")
 
     # Adjcency Matrix
@@ -80,7 +86,10 @@ def convert_data_full_frame(file):
     with h5py.File(f"processed_data/{filename}_edge_lists.h5", "w") as f:
         for idx, (key, arr) in enumerate(adj_dict.items()):
             arr = np.stack([arr.reshape((-1,2))], axis=0)
-            f.create_dataset(f"edge_list_{key}", data=a)
+            game_id, success = key.split('_')
+            new_id = game_id_map.loc[(game_id_map['game_id'] == int(game_id)) & (game_id_map['success'] == int(success)), 'new_id'].values[0]
+            suffix = f"{new_id}_{success}"
+            f.create_dataset(f"edge_list_{suffix}", data=arr)
     
     # Edge Features
     edge_dict = {}
@@ -94,7 +103,10 @@ def convert_data_full_frame(file):
     with h5py.File(f"processed_data/{filename}_edge_features.h5", "w") as f:
         for idx, (key, arr) in enumerate(edge_dict.items()):
             arr = np.stack(arr, axis=0)
-            f.create_dataset(f"edge_features_{key}", data=arr)
+            game_id, success = key.split('_')
+            new_id = game_id_map.loc[(game_id_map['game_id'] == int(game_id)) & (game_id_map['success'] == int(success)), 'new_id'].values[0]
+            suffix = f"{new_id}_{success}"
+            f.create_dataset(f"edge_features_{suffix}", data=arr)
 
 def convert_data_balanced(file):
     """

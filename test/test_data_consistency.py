@@ -13,19 +13,23 @@ from scripts.helper import h5_to_dict
 def test_balanced_node_features():
     filename = ["men", "women", "combined"]
     for name in filename: 
+        h5_size = 0
         with h5py.File(f"processed_data/{name}_node_features.h5", "r") as f:
-            df = h5_to_dict(f)
-            for key in df.keys():
+            node_features = h5_to_dict(f)
+            for key in node_features.keys():
+                h5_size += node_features[key].shape[0] * node_features[key].shape[1]
                 # No NaN values
-                assert not np.sum(~np.isfinite(df[key][:]))
+                assert not np.sum(~np.isfinite(node_features[key][:]))
                 # There is one ball (f[key][:, 10] == -1) for each frame
-                assert np.sum(df[key][:, :, 10] == -1) == 1
+                assert np.sum(node_features[key][:, :, 10] == -1) == 1
         
         df = pd.read_parquet(f"processed_data/{name}_node_features.parquet")
         check_df = df.groupby(["frame_id"])["x"].count().reset_index().apply(lambda x: x["x"] == 23, axis=1)
         assert check_df.all()
         # There is one ball (f[key][:, 10] == -1) for each frame
         assert np.sum(df.loc[df["att_team"] == -1, :].groupby(["frame_id"])["x"].count() == 1)
+        # The sample size of parquer and h5 should be the same
+        assert df.shape[0] == h5_size
 
 
 def test_balanced_edge_features_lists():
@@ -45,13 +49,15 @@ def test_balanced_edge_features_lists():
 def test_full_node_features():
     filename = ["men_imbalanced", "women_imbalanced"]
     for name in filename: 
+        h5_size = 0
         with h5py.File(f"processed_data/{name}_node_features.h5", "r") as f:
-            df = h5_to_dict(f)
-            for key in df.keys():
+            node_features = h5_to_dict(f)
+            for key in node_features.keys():
+                h5_size += node_features[key].shape[0] * node_features[key].shape[1]
                 # No NaN values
-                assert not np.sum(~np.isfinite(df[key][:]))
+                assert not np.sum(~np.isfinite(node_features[key][:]))
                 # There is one ball (f[key][:, 10] == -1) for each frame
-                assert np.sum(df[key][:, :, 10] == -1) == df[key].shape[0]
+                assert np.sum(node_features[key][:, :, 10] == -1) == node_features[key].shape[0]
 
         df = pd.read_parquet(f"processed_data/{name}_node_features.parquet")
         check_df = df.groupby(["game_id", "frame_id", "success"])["x"].count().reset_index().apply(lambda x: x["x"] == 23, axis=1)
@@ -59,6 +65,8 @@ def test_full_node_features():
         # There is one ball (f[key][:, 10] == -1) for each frame
         assert np.sum(df.loc[df["att_team"] == -1, :].groupby(["game_id", "frame_id", "success"])["x"].count() == 1)
 
+        # The sample size of parquer and h5 should be the same
+        assert df.shape[0] == h5_size
 def test_full_edge_features_lists():
     filename = ["men_imbalanced", "women_imbalanced"]
     for name in filename:
