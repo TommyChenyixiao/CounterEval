@@ -17,7 +17,7 @@ def process_data(df):
     """
     # Define the criteria to identify the ball (based on specific conditions)
     ball_criteria = (df['dist_ball'] == 0) & (df['angle_ball'] == 0)
-    df['player_num_label'] = None  # Initialize a column for player labels
+    df['player_num_label'] = None
 
     # Assign label '0' for the ball
     df.loc[ball_criteria, 'player_num_label'] = 0
@@ -33,7 +33,7 @@ def process_data(df):
         prev_frame_data = first_frame
         frame_ids = sorted(df[df['game_id'] == game_id]['frame_id'].unique())
 
-        # Iterate through each frame (excluding the first frame)
+        # Label for each frame
         for frame_id in tqdm(frame_ids, desc=f"Processing Frames for Game ID {game_id}", leave=False):
             if frame_id == 0:
                 continue
