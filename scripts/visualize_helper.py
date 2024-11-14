@@ -33,10 +33,10 @@ def load_data():
 
     return dataset_type, data
 
-def get_game_ids(data):
-    game_ids = data["game_id"].unique()
-    selected_game_id = st.sidebar.selectbox("Game ID", game_ids)
-    return selected_game_id
+def get_game_ids(data, current_game_id):
+    game_ids = sorted(data["game_id"].unique())
+    selected_game_id = st.sidebar.selectbox("Game ID", game_ids, index=game_ids.index(current_game_id))
+    return selected_game_id, game_ids
 
 def create_animation(data, game_id):
     
@@ -67,8 +67,16 @@ def create_animation(data, game_id):
     ax.set_ylim(0, 68)
     ax.set_title(f"Game ID: {game_id} - Counterattack: {success_text}")
 
+
+    # Legend elements
+    ball_legend = plt.Line2D([0], [0], marker='o', color='black', markersize=10, label="Ball")
+    defense_legend = plt.Line2D([0], [0], marker='o', color='blue', markersize=10, label="Defense", markerfacecolor='white')
+    offense_legend = plt.Line2D([0], [0], marker='o', color='red', markersize=10, label="Offense", markerfacecolor='white')
+
+    # Add the legend to the plot
+    ax.legend(handles=[ball_legend, defense_legend, offense_legend], loc='upper right')
     if has_player_num_label:
-    # Initialize plot elements
+        # Initialize plot elements
         ball_node, = ax.plot([], [], 'ko', markersize=10, label="Ball")
 
         # Circle elements for players
@@ -76,7 +84,13 @@ def create_animation(data, game_id):
         offense_circles = []
         player_labels = []
 
-        ax.legend(loc='upper right')
+        # Define custom legend elements
+        ball_legend = plt.Line2D([0], [0], marker='o', color='black', markersize=10, label="Ball")
+        defense_legend = plt.Line2D([0], [0], marker='o', color='blue', markersize=10, label="Defense", markerfacecolor='white')
+        offense_legend = plt.Line2D([0], [0], marker='o', color='red', markersize=10, label="Offense", markerfacecolor='white')
+
+        # Add the legend to the plot
+        ax.legend(handles=[ball_legend, defense_legend, offense_legend], loc='upper right')
 
         def update(frame):
             for circle in defense_circles + offense_circles + player_labels:
@@ -113,6 +127,7 @@ def create_animation(data, game_id):
                 player_labels.append(label)
 
             return ball_node, *defense_circles, *offense_circles, *player_labels
+
     else:
         # Initialize plot elements for points
         defense, = ax.plot([], [], 'bo', label="Defense")
@@ -141,15 +156,36 @@ def create_animation(data, game_id):
     return temp_file.name
 
 
-
 if __name__ == "__main__":
     setup_title()
     dataset_type, data = load_data()
     if dataset_type == "Live":
-        selected_game_id = get_game_ids(data)
-        if st.sidebar.button("Generate Animation"):
-            # Generate the animation for the selected game_id
+        # Initialize the last generated game ID in session state if not already set
+        if "last_generated_game_id" not in st.session_state:
+            st.session_state.last_generated_game_id = data["game_id"].iloc[0]
+
+        selected_game_id, game_ids = get_game_ids(data, st.session_state.last_generated_game_id)
+
+        # Button to generate animation for the selected game ID from the dropdown
+        if st.sidebar.button("Generate Animation", help="Generate GIF for selected game ID", key="generate"):
+            # Generate the animation for the selected game ID
             animation_file = create_animation(data, selected_game_id)
-            
-            # Display the animation in the app
             st.image(animation_file)
+            # Update the last generated game ID
+            st.session_state.last_generated_game_id = selected_game_id
+
+        # Button to generate animation for the next game ID
+        if st.sidebar.button("▶️ Next Game ID", help="Generate GIF for the next game ID", key="next"):
+            # Get the index of the last generated game ID
+            current_index = game_ids.index(st.session_state.last_generated_game_id)
+            # Determine the next index, wrapping around if necessary
+            next_index = (current_index + 1) % len(game_ids)
+            # Get the next game ID
+            next_game_id = game_ids[next_index]
+
+            # Generate animation for the next game ID
+            animation_file = create_animation(data, next_game_id)
+            st.image(animation_file)
+            # Update the last generated game ID
+            st.session_state.last_generated_game_id = next_game_id
+

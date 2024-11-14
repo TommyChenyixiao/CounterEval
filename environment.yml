@@ -76,4 +76,6 @@ dependencies:
       - urllib3==2.2.3
       - watchdog==6.0.0
       - zipp==3.21.0
+      - ipywidgets == 8.1.5
+      - seaborn == 0.13.2
 prefix: /Users/qflovesy/miniconda3/envs/sds625_soccer
