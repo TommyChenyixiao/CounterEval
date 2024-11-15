@@ -13,9 +13,40 @@ Counterattacking is an effective strategy for scoring in modern football, champi
 
 ### Virtual Environment
 
+```
+conda create -f environment.yml
+```
+
+### Run All Results
+
+You can get all results of this project by running one of the two following commands.
+
+```
+Rscript scripts/Main.R # Option 1
+# bash scripts/Main.sh # Option 2
+```
+
 ### Data
 
+#### Raw Datasets
+
+The source of the raw dataset is [ussf_ssac_23_soccer_gnn](https://github.com/USSoccerFederation/ussf_ssac_23_soccer_gnn). However, the data quality of this dataset is very low. Most other soccer tracking data is not free in the market and we advocate for more open access to high-quality soccer tracking data to facilitate research and development in this field.
+
+To download all raw datasets for our project, run the following command.
+
+```
+bash scripts/get_raw_dataset.sh
+```
+
+#### Data Cleaning
+
 ### Visualization
+
+We also provide a streamlit app to visualize the counterattack process to facilitate our EDA. 
+
+```
+streamlit run scripts/visualize_helper.py
+```
 
 ### Model Training & Testing
 
