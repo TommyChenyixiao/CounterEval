@@ -236,6 +236,7 @@ def relabel_attack_team(filename):
 
 def relabel_success(filename):
     """
+    *** THIS FUNCTION IS DEPRECATED SINCE WE WILL DO MANUAL LABELING ***
     We found that there are some samples labeled with unsuccessful counterattack actually are successful counterattacks 
     i.e. the offensive team successfully brings the ball to the opponent's penalty area. We use the last frame of the
     full frame data to determine the success of the counterattack.
@@ -304,23 +305,27 @@ def relabel_success(filename):
     # Assert that after the above process, the number of games is the same
     assert condition_df.loc[:, "game_id"].nunique() == df.loc[:, "game_id"].nunique()
     relabeled_df = pd.merge(df, condition_df, on=['game_id'], how='inner')
+    game_id_success_mapping = pd.rea
     relabeled_df.loc[:, "success"] = relabeled_df.loc[:, "indicative_success"]
 
-    ## TEST first....
+    number_of_games = relabeled_df.loc[:, "game_id"].nunique()
+    logger.info(f"{filename} - After relabeling success - Number of games after relabeling: {number_of_games}")
+
+    # DEPRECATED
 
 
 def main():
     full_filenames = ["men_imbalanced", "women_imbalanced"]
     balanced_filenames = ["men", "women", "combined"]
     # balanced_filenames = []
-    # for filename in full_filenames + balanced_filenames:
-    #     exclude_red_card_data(filename)
+    for filename in full_filenames + balanced_filenames:
+        exclude_red_card_data(filename)
     
-    # for filename in full_filenames:
-    #     relabel_attack_team(filename)
-
     for filename in full_filenames:
-        relabel_success(filename)
+        relabel_attack_team(filename)
+
+    # for filename in full_filenames:
+    #     relabel_success(filename)
     
 if __name__ == "__main__":
     main()
