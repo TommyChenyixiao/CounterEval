@@ -9,6 +9,10 @@ __pycache__/
 # Large data files
 *.pkl
 *.DS_Store
+*.h5
+*.npy
+*.npz
+*.parquet
 # Distribution / packaging
 .Python
 build/
