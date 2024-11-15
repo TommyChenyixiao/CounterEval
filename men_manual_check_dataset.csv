@@ -1,14 +1,14 @@
 index,dataset_name,ball_flying_issue,player_number_issue,success_label_issue,comments,manual_check_passed
 0,men_imbalanced,,,,,Green
 1,men_imbalanced,,,,,Green
-2,men_imbalanced,X,,X,,Red
-3,men_imbalanced,X,,,Ball flying potential,Red
+2,men_imbalanced,,,,,Green
+3,men_imbalanced,,,,,Green
 4,men_imbalanced,,,X,,Red
 5,men_imbalanced,X,,,,Red
 6,men_imbalanced,,,X,not finished,Red
 7,men_imbalanced,,,,,Green
 8,men_imbalanced,,,X,,Red
-9,men_imbalanced,X,,,flying potential,Red
+9,men_imbalanced,,,,,Green
 10,men_imbalanced,,,X,,Red
 11,men_imbalanced,,,,,Green
 12,men_imbalanced,,,,,Green
@@ -18,7 +18,7 @@ index,dataset_name,ball_flying_issue,player_number_issue,success_label_issue,com
 16,men_imbalanced,,,,,Green
 17,men_imbalanced,,,,,Green
 18,men_imbalanced,,,,,Green
-19,men_imbalanced,X,,,,Red
+19,men_imbalanced,,,,,Green
 20,men_imbalanced,,,,,Red
 21,men_imbalanced,,,,,Red
 22,men_imbalanced,,,,,Red
@@ -209,16 +209,16 @@ index,dataset_name,ball_flying_issue,player_number_issue,success_label_issue,com
 207,men_imbalanced,,,,,
 208,men_imbalanced,,,,,
 209,men_imbalanced,,,,,
-210,men_imbalanced,,,,,
-211,men_imbalanced,,,,,
-212,men_imbalanced,,,,,
-213,men_imbalanced,,,,,
-214,men_imbalanced,,,,,
-215,men_imbalanced,,,,,
-216,men_imbalanced,,,,,
-217,men_imbalanced,,,,,
-218,men_imbalanced,,,,,
-219,men_imbalanced,,,,,
+210,men_imbalanced,,,,,Red
+211,men_imbalanced,,,,,Red
+212,men_imbalanced,,,,,Red
+213,men_imbalanced,,,,,Red
+214,men_imbalanced,,,,,Red
+215,men_imbalanced,,,,,Red
+216,men_imbalanced,,,,,Red
+217,men_imbalanced,,,,,Red
+218,men_imbalanced,,,,,Red
+219,men_imbalanced,,,,,Red
 220,men_imbalanced,,,,,
 221,men_imbalanced,,,,,
 222,men_imbalanced,,,,,
