@@ -50,7 +50,7 @@ def create_animation(data, game_id):
     game_data["vx"] = game_data["vx"] * game_data["v"]
     game_data["vy"] = game_data["vy"] * game_data["v"]
 
-    game_data["Node Type"] = game_data["att_team"].apply(lambda x: "Ball" if x == -1 else "Offense" if x == 1 else "Defense")
+    game_data.loc[:, "Node Type"] = game_data["att_team"].apply(lambda x: "Ball" if x == -1 else "Offense" if x == 1 else "Defense")
     
     has_player_num_label = 'player_num_label' in game_data.columns
     if has_player_num_label:
@@ -152,6 +152,7 @@ def create_animation(data, game_id):
     
     # Save animation to a temporary file and return the file path
     temp_file = tempfile.NamedTemporaryFile(suffix=".gif", delete=False)
+    print(temp_file.name)
     ani.save(temp_file.name, writer="pillow", fps=10)
     return temp_file.name
 
