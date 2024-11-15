@@ -15,12 +15,19 @@ def process_data(df):
     - df: The processed DataFrame with labeled players.
     - df_test: A DataFrame with calculated Euclidean distances for player tracking.
     """
+    
     # Define the criteria to identify the ball (based on specific conditions)
     ball_criteria = (df['dist_ball'] == 0) & (df['angle_ball'] == 0)
     df['player_num_label'] = None
 
+    # Remap game_id to have no gaps
+    unique_game_ids = df['game_id'].unique()
+    game_id_mapping = {old_id: new_id for new_id, old_id in enumerate(sorted(unique_game_ids))}
+    df['game_id'] = df['game_id'].map(game_id_mapping)
+
     # Assign label '0' for the ball
     df.loc[ball_criteria, 'player_num_label'] = 0
+
 
     # Iterate through each unique game_id
     for game_id in tqdm(df['game_id'].unique(), desc="Processing Game IDs"):
@@ -174,36 +181,32 @@ def plot_histograms_and_print_tables(df_tests, genders):
 
 if __name__ == "__main__":
     # Check if the input file names are provided
-    if len(sys.argv) != 3:
-        print("Usage: python main.py <file_name_1> <file_name_2>")
+    if len(sys.argv) != 2:
+        print("Usage: python main.py <file_name>")
         sys.exit(1)
 
-    input_files = sys.argv[1:3]
+    input_file = sys.argv[1]
     genders = []
 
     # Determine gender based on file names
-    for input_file in input_files:
-        if 'women' in input_file.lower():
-            genders.append('Women')
-        elif 'men' in input_file.lower():
-            genders.append('Men')
-        else:
-            genders.append('Unknown')
-
-    df_tests = []
+    
+    if 'women' in input_file.lower():
+        genders.append('Women')
+    elif 'men' in input_file.lower():
+        genders.append('Men')
+    else:
+        genders.append('Unknown')
 
     # Process each input file
-    for input_file in input_files:
-        print(f"Processing {input_file}...")
-        df = pd.read_parquet(input_file)
-        _, df_test = process_data(df)
-        df_tests.append(df_test)
+    print(f"Processing {input_file}...")
+    df = pd.read_parquet(input_file)
+    print(df.head(23))
+    df, df_test = process_data(df.head(23))
 
-    # Plot histograms and print statistics tables
-    plot_histograms_and_print_tables(df_tests, genders)
+    # # Plot histograms and print statistics tables
+    plot_histograms_and_print_tables(df_test, genders)
 
     # Save the processed DataFrames
-    for input_file, df in zip(input_files, df_tests):
-        output_path = input_file.replace(".parquet", "_numbered_test.parquet")
-        print(f"Saving processed data to {output_path}...")
-        df.to_parquet(output_path, index=False, engine='pyarrow')
+    output_path = input_file.replace(".parquet", "_numbered.parquet")
+    print(f"Saving processed data to {output_path}...")
+    df.to_parquet(output_path, index=False, engine='pyarrow')
