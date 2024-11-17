@@ -136,6 +136,6 @@ The model training process involves a rigorous pipeline to ensure robust and rel
 
 ## References
 1. Sahasrabudhe, A., & Bekkers, J. (2023). _A Graph Neural Network Deep-Dive into Successful Counterattacks_. In 17th Annual MIT Sloan Sports Analytics Conference.
-2. Veličković, P., Cucurull, G., Casanova, A., Romero, A., Liò, P., & Bengio, Y. (2017). Graph Attention Networks. arXiv, 1710.10903. Retrieved from https://arxiv.org/abs/1710.10903v3
+2. Veličković, P., Cucurull, G., Casanova, A., Romero, A., Liò, P., & Bengio, Y. (2017). Graph Attention Networks. arXiv, 1710.10903.
 
 
