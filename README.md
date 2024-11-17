@@ -15,6 +15,7 @@ Counterattacking is an effective strategy for scoring in modern football, champi
 
 ```
 conda create -f environment.yml
+conda activate sds625_soccer
 ```
 
 ### Run All Results
@@ -30,7 +31,37 @@ Rscript scripts/Main.R # Option 1
 
 #### Raw Datasets
 
-The source of the raw dataset is [ussf_ssac_23_soccer_gnn](https://github.com/USSoccerFederation/ussf_ssac_23_soccer_gnn). However, the data quality of this dataset is very low. Most other soccer tracking data is not free in the market and we advocate for more open access to high-quality soccer tracking data to facilitate research and development in this field.
+The source of the raw dataset is [ussf_ssac_23_soccer_gnn](https://github.com/USSoccerFederation/ussf_ssac_23_soccer_gnn). They represent each frame of tracking data as a heterogeneous graph, where nodes correspond to individual players (offensive and defensive) and edges represent the spatial and temporal relationships between players.
+
+* Edge Features:
+  * Player Distance - Distance between two players connected to each other
+  * Speed Difference - Speed difference between two players connected to each other
+  * Positional Sine angle - Sine of the angle created between two players in the edge
+  * Positional Cosine angle - Cosine of the angle created between two players in the edge
+  * Velocity Sine angle - Sine of the angle created between the velocity vectors of two players in the edge
+  * Velocity Cosine angle - Coine of the angle created between the velocity vectors of two players in the edge
+  
+* Node Features:
+  * x coordinate - x coordinate on the 2D pitch for the player / ball
+  * y coordinate - y coordinate on the 2D pitch for the player / ball
+  * vx - Velocity vector's x coordinate
+  * vy - Velocity vector's y coordinate
+  * Velocity - magnitude of the velocity
+  *  Velocity Angle - angle made by the velocity vector
+  * Distance to Goal - distance of the player from the goal post
+  * Angle with Goal - angle made by the player with the goal
+  * Distance to Ball - distance from the ball (always 0 for the ball)
+  * Angle with Ball - angle made with the ball (always 0 for the ball)
+  * Attacking Team Flag - 1 if the team is attacking, 0 if not and for the ball
+  * Potential Receiver - 1 if player is a potential receiver, 0 otherwise
+
+The Graph configuration is depicted by the graph below:
+
+![Graph Configuration](img/graph.png)
+
+(source: [ussf_ssac_23_soccer_gnn](https://github.com/USSoccerFederation/ussf_ssac_23_soccer_gnn))
+
+However, the data quality of this dataset is very low. Most other soccer tracking data is not free in the market and we advocate for more open access to high-quality soccer tracking data to facilitate research and development in this field.
 
 To download all raw datasets for our project, run the following command.
 
@@ -47,11 +78,64 @@ We also provide a streamlit app to visualize the counterattack process to facili
 ```
 streamlit run scripts/visualize_helper.py
 ```
+### Methodology
 
-### Model Training & Testing
+The **CounterEval** framework introduces a novel approach for evaluating player performance during soccer counterattacks using Graph Neural Networks (GNNs). The methodology is structured as follows:
+
+#### 1. Player Movement Prediction with Graph Neural Networks
+
+To model the dynamic behavior of players, we employ two distinct GNN-based predictive models:
+
+- **Offensive Player Prediction Model**
+- **Defensive Player Prediction Model**
+
+These models utilize a **Graph Attention Network (GAT)** architecture, which assigns varying levels of importance to different nodes (players) in the graph based on their interactions and context.
+
+**Training Objective:**  
+The models are trained to predict the next-frame position of each player using Mean Squared Error (MSE) as the loss function.
+
+**Interpretation of Predictions:**  
+The predicted positions serve as a proxy for understanding expected player movements, providing a benchmark for evaluating individual player decisions and actions.
+
+#### 3. Counterattack Outcome Prediction
+
+In addition to player movement prediction, we develop a separate GNN-based model (GAT/GCN) to predict the overall success of a counterattack. 
+
+**Training Objective:**  
+This model takes as input the graph representation of the current game state and outputs the probability of a successful counterattack. The model is trained using a **Binary Cross-Entropy (BCE)** loss function.
+
+
+#### 4. CounterEval Contribution Score
+
+A key innovation of the CounterEval framework is the introduction of the **CounterEval Contribution Score**, designed to quantify the impact of each player’s actions on the probability of counterattack success. The score is computed as follows:
+
+1. **Baseline Prediction:**  
+   Use the movement prediction model to estimate the next-frame positions of all players.
+
+2. **Counterfactual Analysis:**  
+   Replace the actual position of a given player with the model’s predicted position, keeping other players’ positions unchanged.
+
+3. **Score Calculation:**  
+   Evaluate the change in the predicted probability of a successful counterattack:
+   - A **positive score** indicates that the player’s actual movement increased the likelihood of success.
+   - A **negative score** suggests that the player’s movement was suboptimal, reducing the probability of a successful counterattack.
+
+This counterfactual approach allows us to isolate and measure the individual contributions of players, providing valuable insights for performance analysis and coaching.
+
+#### 5. Model Training and Evaluation Pipeline
+
+The model training process involves a rigorous pipeline to ensure robust and reliable predictions:
+
+- **Data Splitting:** The dataset is split into training, validation, and test sets based on different games. 
+- **Hyperparameter Tuning:** We perform grid search and Bayesian optimization to fine-tune model hyperparameters.
+- **Evaluation Metrics:** The models are evaluated using standard metrics:
+  - For movement prediction models: **Mean Squared Error (MSE)** and **Root Mean Squared Error (RMSE)**.
+  - For counterattack outcome prediction: **Accuracy**, **F1-Score**, and **Area Under the ROC Curve (AUC)**.
 
 ## Acknowledgement 
 
 ## References
+1. Sahasrabudhe, A., & Bekkers, J. (2023). _A Graph Neural Network Deep-Dive into Successful Counterattacks_. In 17th Annual MIT Sloan Sports Analytics Conference.
+2. Veličković, P., Cucurull, G., Casanova, A., Romero, A., Liò, P., & Bengio, Y. (2017). Graph Attention Networks. arXiv, 1710.10903.
 
 

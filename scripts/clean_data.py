@@ -18,7 +18,9 @@ by evaluating the position of goalkeepers and the average direction of the playe
 6. There is no id for players it is hard to analyze the movement of players. We will add an id for each player by assuming that the order of players in the dataset
 is consistent in different frames. This requires further investigation on the continuity of the position of players in different frames.
 
-7. Due to the above problems, we think the balanced dataset is not reliable. We will regenerate a balanced dataset from the cleaned full frames data.
+7. Some games have too few frames to be considered as a counterattack. We may exclude these games.
+
+8. Due to the above problems, we think the balanced dataset is not reliable. We will regenerate a balanced dataset from the cleaned full frames data.
 """
 
 import sys
@@ -232,6 +234,86 @@ def relabel_attack_team(filename):
     
     relabeled_df.to_parquet(f"processed_data/{filename}_node_features.parquet", index=False)
 
+def relabel_success(filename):
+    """
+    *** THIS FUNCTION IS DEPRECATED SINCE WE WILL DO MANUAL LABELING ***
+    We found that there are some samples labeled with unsuccessful counterattack actually are successful counterattacks 
+    i.e. the offensive team successfully brings the ball to the opponent's penalty area. We use the last frame of the
+    full frame data to determine the success of the counterattack.
+    """
+    field_length, field_width = 105, 68
+    penalty_length, penalty_width = 16.5, 40.3
+
+    df = pd.read_parquet(f"processed_data/{filename}_node_features.parquet")
+    # Assume that we have fixed the team_flag of the ball nodes
+    # Game direction
+    game_direction = (
+        df.loc[df.loc[:, "att_team"] != -1, :].groupby(['game_id']).agg(
+            avg_vx=('vx', 'mean')
+        ).reset_index()
+    )
+    game_direction = game_direction.reset_index()
+    game_direction.loc[:, "game_direction"] = np.sign(game_direction.loc[:, "avg_vx"]) # +1 => right, -1 => left
+
+    # First frame when the ball is within the opponent's penalty area
+    #NOTE We also try the last frame, but given the goal of understanding whether the counterattack can
+    # pass the ball into the opponent's penalty area i.e. the event within the penalty area is not considered,
+    # we think as long as there is one (two? three?) frame that the ball is within the opponent's penalty area, the counterattack is successful
+    frame_df = df.copy(deep=True)
+
+    ball_df = frame_df.loc[frame_df.loc[:, "att_team"] == -1, :]
+    ball_df.loc[:, "x_actual"] = ball_df.loc[:, "x"] * field_length
+    ball_df.loc[:, "y_actual"] = ball_df.loc[:, "y"] * field_width
+    ball_df = pd.merge(ball_df, game_direction, on=['game_id'], how='inner')
+    # Determine whether the ball is in the opponent's penalty area
+    ball_df.loc[:, "in_penalty_area"] = (
+        (ball_df.loc[:, "game_direction"] == 1) & 
+        (ball_df.loc[:, "x_actual"] >= field_length - penalty_length) &
+        (ball_df.loc[:, "y_actual"] >= (field_width - penalty_width) / 2) &
+        (ball_df.loc[:, "y_actual"] <= (field_width + penalty_width) / 2)
+    ) | (
+        (ball_df.loc[:, "game_direction"] == -1) & 
+        (ball_df.loc[:, "x_actual"] <= penalty_length) &
+        (ball_df.loc[:, "y_actual"] >= (field_width - penalty_width) / 2) &
+        (ball_df.loc[:, "y_actual"] <= (field_width + penalty_width) / 2)
+    )
+    # Determine whether the ball is controlled by the attacking team
+    players_df = frame_df.loc[frame_df.loc[:, "att_team"] != -1, :]
+    players_df = players_df.groupby(['game_id', 'frame_id', 'att_team']).agg(
+        min_dist_to_ball=('dist_ball', 'min')
+    ).reset_index().pivot(index=['game_id', 'frame_id'], columns='att_team', values='min_dist_to_ball')
+    players_df.columns = [f"min_dist_to_ball_{int(flag)}" for flag in players_df.columns]
+    players_df = players_df.reset_index()
+    players_df.loc[:, "controlled_by_att_team"] = (
+        players_df.loc[:, "min_dist_to_ball_0"] > players_df.loc[:, "min_dist_to_ball_1"]
+    )
+    # AND the two conditions
+    assert ball_df.loc[:, "game_id"].nunique() == players_df.loc[:, "game_id"].nunique()
+    condition_df = pd.merge(ball_df, players_df, on=['game_id', 'frame_id'], how='inner')
+    assert condition_df.loc[:, "game_id"].nunique() == df.loc[:, "game_id"].nunique()
+
+    # As long as there is one frame that the ball is in the opponent's penalty area and controlled by the attacking team, the counterattack is successful
+    condition_df.loc[:, "indicative_success"] = condition_df.apply(
+        lambda row: 1 if row['in_penalty_area'] and row['controlled_by_att_team'] else 0,
+        axis=1
+    )
+    condition_df = condition_df.loc[:, ['game_id', 'frame_id', 'indicative_success']]
+    condition_df = condition_df.groupby(['game_id']).agg(
+        indicative_success=('indicative_success', 'max')
+    ).reset_index()
+
+    # Assert that after the above process, the number of games is the same
+    assert condition_df.loc[:, "game_id"].nunique() == df.loc[:, "game_id"].nunique()
+    relabeled_df = pd.merge(df, condition_df, on=['game_id'], how='inner')
+    game_id_success_mapping = pd.rea
+    relabeled_df.loc[:, "success"] = relabeled_df.loc[:, "indicative_success"]
+
+    number_of_games = relabeled_df.loc[:, "game_id"].nunique()
+    logger.info(f"{filename} - After relabeling success - Number of games after relabeling: {number_of_games}")
+
+    # DEPRECATED
+
+
 def main():
     full_filenames = ["men_imbalanced", "women_imbalanced"]
     balanced_filenames = ["men", "women", "combined"]
@@ -241,6 +323,9 @@ def main():
     
     for filename in full_filenames:
         relabel_attack_team(filename)
+
+    # for filename in full_filenames:
+    #     relabel_success(filename)
     
 if __name__ == "__main__":
     main()
