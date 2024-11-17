@@ -69,7 +69,7 @@ To download all raw datasets for our project, run the following command.
 bash scripts/get_raw_dataset.sh
 ```
 
-#### Data Cleaning (TODO)
+#### Data Cleaning
 
 ### Visualization
 
@@ -80,7 +80,7 @@ streamlit run scripts/visualize_helper.py
 ```
 ### Methodology
 
-The **CounterEval** framework introduces a novel approach for evaluating player performance during soccer counterattacks using Graph Neural Networks (GNNs). We leverage high-resolution tracking data and formulate the problem as a predictive modeling task where player movements and their impact on the counterattack outcome are assessed. The methodology is structured as follows:
+The **CounterEval** framework introduces a novel approach for evaluating player performance during soccer counterattacks using Graph Neural Networks (GNNs). The methodology is structured as follows:
 
 #### 1. Player Movement Prediction with Graph Neural Networks
 
@@ -89,10 +89,7 @@ To model the dynamic behavior of players, we employ two distinct GNN-based predi
 - **Offensive Player Prediction Model**
 - **Defensive Player Prediction Model**
 
-These models utilize a **Graph Attention Network (GAT)** architecture, which assigns varying levels of importance to different nodes (players) in the graph based on their interactions and context. By applying attention mechanisms, the GNN learns to focus on key players who are most influential in the counterattack scenario.
-
-**Features Used:**  
-The input features for this model include both node-level (e.g., player positions, velocities, angles) and edge-level features (e.g., player distances, velocity differences), capturing the holistic dynamics of the play.
+These models utilize a **Graph Attention Network (GAT)** architecture, which assigns varying levels of importance to different nodes (players) in the graph based on their interactions and context.
 
 **Training Objective:**  
 The models are trained to predict the next-frame position of each player using Mean Squared Error (MSE) as the loss function. This approach minimizes the prediction error, allowing the model to capture typical movement patterns of offensive and defensive players during counterattacks.
@@ -107,8 +104,6 @@ In addition to player movement prediction, we develop a separate GNN-based model
 **Training Objective:**  
 This model takes as input the graph representation of the current game state and outputs the probability of a successful counterattack. The model is trained using a **Binary Cross-Entropy (BCE)** loss function, which penalizes incorrect predictions of success or failure.
 
-**Features Used:**  
-The input features for this model include both node-level (e.g., player positions, velocities, angles) and edge-level features (e.g., player distances, velocity differences), capturing the holistic dynamics of the play.
 
 #### 4. CounterEval Contribution Score
 
@@ -131,7 +126,7 @@ This counterfactual approach allows us to isolate and measure the individual con
 
 The model training process involves a rigorous pipeline to ensure robust and reliable predictions:
 
-- **Data Splitting:** The dataset is split into training, validation, and test sets based on different games (TODO). 
+- **Data Splitting:** The dataset is split into training, validation, and test sets based on different games. 
 - **Hyperparameter Tuning:** We perform grid search and Bayesian optimization to fine-tune model hyperparameters, such as the number of GNN layers, hidden dimensions, and attention heads.
 - **Evaluation Metrics:** The models are evaluated using standard metrics:
   - For movement prediction models: **Mean Squared Error (MSE)** and **Root Mean Squared Error (RMSE)**.
