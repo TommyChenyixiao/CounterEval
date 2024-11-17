@@ -182,7 +182,7 @@ def plot_histograms_and_print_tables(df_tests, genders):
 if __name__ == "__main__":
     # Check if the input file names are provided
     if len(sys.argv) != 2:
-        print("Usage: python main.py <file_name>")
+        print("Usage: python label_data.py <file_name>")
         sys.exit(1)
 
     input_file = sys.argv[1]
