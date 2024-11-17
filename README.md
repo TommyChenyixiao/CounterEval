@@ -92,7 +92,7 @@ To model the dynamic behavior of players, we employ two distinct GNN-based predi
 These models utilize a **Graph Attention Network (GAT)** architecture, which assigns varying levels of importance to different nodes (players) in the graph based on their interactions and context.
 
 **Training Objective:**  
-The models are trained to predict the next-frame position of each player using Mean Squared Error (MSE) as the loss function. This approach minimizes the prediction error, allowing the model to capture typical movement patterns of offensive and defensive players during counterattacks.
+The models are trained to predict the next-frame position of each player using Mean Squared Error (MSE) as the loss function.
 
 **Interpretation of Predictions:**  
 The predicted positions serve as a proxy for understanding expected player movements, providing a benchmark for evaluating individual player decisions and actions.
@@ -102,7 +102,7 @@ The predicted positions serve as a proxy for understanding expected player movem
 In addition to player movement prediction, we develop a separate GNN-based model (GAT/GCN) to predict the overall success of a counterattack. 
 
 **Training Objective:**  
-This model takes as input the graph representation of the current game state and outputs the probability of a successful counterattack. The model is trained using a **Binary Cross-Entropy (BCE)** loss function, which penalizes incorrect predictions of success or failure.
+This model takes as input the graph representation of the current game state and outputs the probability of a successful counterattack. The model is trained using a **Binary Cross-Entropy (BCE)** loss function.
 
 
 #### 4. CounterEval Contribution Score
@@ -127,7 +127,7 @@ This counterfactual approach allows us to isolate and measure the individual con
 The model training process involves a rigorous pipeline to ensure robust and reliable predictions:
 
 - **Data Splitting:** The dataset is split into training, validation, and test sets based on different games. 
-- **Hyperparameter Tuning:** We perform grid search and Bayesian optimization to fine-tune model hyperparameters, such as the number of GNN layers, hidden dimensions, and attention heads.
+- **Hyperparameter Tuning:** We perform grid search and Bayesian optimization to fine-tune model hyperparameters.
 - **Evaluation Metrics:** The models are evaluated using standard metrics:
   - For movement prediction models: **Mean Squared Error (MSE)** and **Root Mean Squared Error (RMSE)**.
   - For counterattack outcome prediction: **Accuracy**, **F1-Score**, and **Area Under the ROC Curve (AUC)**.
