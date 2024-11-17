@@ -204,6 +204,6 @@ if __name__ == "__main__":
 
     # Save the processed DataFrames
     for input_file, df in zip(input_files, df_tests):
-        output_path = input_file.replace(".parquet", "_numbered_test.parquet")
+        output_path = input_file.replace(".parquet", "_numbered.parquet")
         print(f"Saving processed data to {output_path}...")
         df.to_parquet(output_path, index=False, engine='pyarrow')
