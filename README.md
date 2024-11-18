@@ -14,7 +14,7 @@ Counterattacking is an effective strategy for scoring in modern football, champi
 ### Virtual Environment
 
 ```
-conda create -f environment.yml
+conda env create -f environment.yml
 conda activate sds625_soccer
 ```
 
