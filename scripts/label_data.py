@@ -200,11 +200,11 @@ if __name__ == "__main__":
     # Process each input file
     print(f"Processing {input_file}...")
     df = pd.read_parquet(input_file)
-    print(df.head(23))
-    df, df_test = process_data(df.head(23))
+    # print(df.head(23))
+    df, df_test = process_data(df)
 
     # # Plot histograms and print statistics tables
-    plot_histograms_and_print_tables(df_test, genders)
+    # plot_histograms_and_print_tables(df_test, genders)
 
     # Save the processed DataFrames
     output_path = input_file.replace(".parquet", "_numbered.parquet")
