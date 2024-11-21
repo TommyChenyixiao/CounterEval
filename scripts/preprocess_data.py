@@ -47,4 +47,4 @@ def visualize_mistakes_heatmap(data):
 
 if __name__ == "__main__":   
     # Call the function
-    visualize_mistakes_heatmap(check_df[:300])
+    visualize_mistakes_heatmap(check_df[600:900])
