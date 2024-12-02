@@ -1,0 +1,10 @@
+x
+y
+dist_goal
+angle_goal
+dist_ball
+angle_ball
+dist_to_left_boundary
+dist_to_right_boundary
+off_team
+def_team
