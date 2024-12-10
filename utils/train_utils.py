@@ -202,3 +202,38 @@ def setup_experiment(model_name: str, config: dict) -> Path:
         json.dump(config, f, indent=4)
     
     return exp_dir
+
+def save_results_summary(results_dict, models_test_metrics, training_time, save_dir, start_time):
+    """Creates a detailed results summary with unique timestamp identifier."""
+    results_file = Path(save_dir) / f'results_{start_time}.txt'
+    
+    with open(results_file, 'w') as f:
+        f.write("Model Performance Summary\n")
+        f.write("=" * 80 + "\n\n")
+        
+        f.write("Experiment Details:\n")
+        f.write(f"Start Time: {start_time}\n")
+        f.write(f"Total Training Duration: {training_time:.2f} seconds\n\n")
+        
+        f.write("Test Performance Metrics:\n")
+        row_format = "{:<15} {:<10} {:<10} {:<10} {:<15} {:<10}"
+        headers = ['Model', 'Test Acc', 'Test F1', 'Test AUC', 'Best Val Loss', 'Best Val F1']
+        
+        f.write(row_format.format(*headers) + "\n")
+        f.write("-" * 80 + "\n")
+        
+        for model_name in results_dict.keys():
+            test_metrics = models_test_metrics[model_name]
+            best_val_idx = np.argmin(results_dict[model_name].metrics['val']['loss'])
+            best_val_loss = results_dict[model_name].metrics['val']['loss'][best_val_idx]
+            best_val_f1 = results_dict[model_name].metrics['val']['f1'][best_val_idx]
+            
+            row = [
+                model_name,
+                f"{test_metrics['accuracy']:.3f}",
+                f"{test_metrics['f1']:.3f}",
+                f"{test_metrics['auc']:.3f}",
+                f"{best_val_loss:.3f}",
+                f"{best_val_f1:.3f}"
+            ]
+            f.write(row_format.format(*row) + "\n")

@@ -1,11 +1,12 @@
 import torch
 from torch_geometric.loader import DataLoader
 from pathlib import Path
-
+from datetime import datetime
+import time
 from models.gnn_models import create_gnn_model
 from utils.train_utils import (
     MetricsTracker, train_epoch, validate_epoch,
-    plot_training_curves, plot_model_comparison, setup_experiment
+    plot_training_curves, plot_model_comparison, setup_experiment, save_results_summary
 )
 
 def train_model(model, train_loader, val_loader, device, model_name, config, exp_dir):
@@ -61,15 +62,17 @@ def train_model(model, train_loader, val_loader, device, model_name, config, exp
     metrics_tracker.save()
     return model, metrics_tracker
 def main():
+    start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    training_start = time.time()
     train_data = torch.load('processed_data/men_balanced_train_graph_dataset.pt')
     val_data = torch.load('processed_data/men_imbalanced_val_graph_dataset.pt')
     test_data = torch.load('processed_data/men_imbalanced_test_graph_dataset.pt')
     
     model_configs = {
-        'GCN': {'hidden_channels': 64, 'num_layers': 3, 'dropout': 0.5, 'pool_type': 'mean'},
-        'GAT': {'hidden_channels': 32, 'num_layers': 2, 'heads': 4, 'dropout': 0.5, 'pool_type': 'mean'},
-        'GraphSAGE': {'hidden_channels': 64, 'num_layers': 3, 'dropout': 0.5, 'pool_type': 'max'},
-        'Transformer': {'hidden_channels': 32, 'num_layers': 2, 'heads': 4, 'dropout': 0.5, 'pool_type': 'mean'}
+        'GCN': {'hidden_channels': 128, 'num_layers': 3, 'dropout': 0.5, 'pool_type': 'mean'},
+        'GAT': {'hidden_channels': 128, 'num_layers': 3, 'heads': 4, 'dropout': 0.5, 'pool_type': 'mean'},
+        'GraphSAGE': {'hidden_channels': 128, 'num_layers': 3, 'dropout': 0.5, 'pool_type': 'max'},
+        'Transformer': {'hidden_channels': 128, 'num_layers': 3, 'heads': 4, 'dropout': 0.5, 'pool_type': 'mean'}
     }
     
     train_config = {
@@ -88,6 +91,7 @@ def main():
     
     results_dict = {}
     trained_models = {}
+    models_test_metrics = {}
     test_loader = DataLoader(test_data, batch_size=train_config['batch_size'])
     
     for model_name, model_config in model_configs.items():
@@ -109,10 +113,12 @@ def main():
         test_metrics = validate_epoch(model, test_loader, torch.nn.BCEWithLogitsLoss(), device)
         print(f'\nTest Results for {model_name}:')
         print(f'F1: {test_metrics["f1"]:.3f} | AUC: {test_metrics["auc"]:.3f} | Acc: {test_metrics["accuracy"]:.3f}')
-        
+               
         results_dict[model_name] = metrics_tracker
         trained_models[model_name] = model
     
+    total_training_time = time.time() - training_start
+    save_results_summary(results_dict, models_test_metrics, total_training_time, 'experiments', start_time)
     plot_model_comparison(results_dict, trained_models, test_loader, device, 'results')
 
 if __name__ == '__main__':
