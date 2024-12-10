@@ -69,20 +69,19 @@ def main():
     test_data = torch.load('processed_data/men_imbalanced_test_graph_dataset.pt')
     
     model_configs = {
-        'GCN': {'hidden_channels': 128, 'num_layers': 3, 'dropout': 0.5, 'pool_type': 'mean'},
-        'GAT': {'hidden_channels': 128, 'num_layers': 3, 'heads': 4, 'dropout': 0.5, 'pool_type': 'mean'},
-        'GraphSAGE': {'hidden_channels': 128, 'num_layers': 3, 'dropout': 0.5, 'pool_type': 'max'},
-        'Transformer': {'hidden_channels': 128, 'num_layers': 3, 'heads': 4, 'dropout': 0.5, 'pool_type': 'mean'}
+        'GCN': {'hidden_channels': 32, 'num_layers': 2, 'dropout': 0.5, 'pool_type': 'mean'},
+        'GAT': {'hidden_channels': 32, 'num_layers': 2, 'heads': 6, 'dropout': 0.5, 'pool_type': 'mean'},
+        'GraphSAGE': {'hidden_channels': 32, 'num_layers': 2, 'dropout': 0.5, 'pool_type': 'max'},
+        'Transformer': {'hidden_channels': 32, 'num_layers': 2, 'heads': 6, 'dropout': 0.5, 'pool_type': 'mean'}
     }
     
     train_config = {
-        'epochs': 100,
+        'epochs': 200,
         'lr': 0.001,
         'weight_decay': 5e-4,
         'batch_size': 32,
-        'patience': 10,
+        'patience': 20,
         'scheduler': 'reduce_on_plateau',
-        'pos_weight': 2.0,
         'clip_grad_norm': 1.0
     }
     
@@ -118,7 +117,7 @@ def main():
         trained_models[model_name] = model
     
     total_training_time = time.time() - training_start
-    save_results_summary(results_dict, models_test_metrics, total_training_time, 'experiments', start_time)
+    save_results_summary(results_dict, models_test_metrics, total_training_time, 'results', start_time)
     plot_model_comparison(results_dict, trained_models, test_loader, device, 'results')
 
 if __name__ == '__main__':
