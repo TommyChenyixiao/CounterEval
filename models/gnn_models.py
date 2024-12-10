@@ -1,196 +1,151 @@
 import torch
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv, GATConv, SAGEConv, global_mean_pool, global_add_pool, global_max_pool
-from torch.nn import Linear, ReLU, BatchNorm1d, Dropout, ModuleList
+from torch_geometric.nn import (
+    GCNConv, GATConv, SAGEConv, TransformerConv,
+    global_mean_pool, global_add_pool, global_max_pool
+)
+from torch.nn import Linear, BatchNorm1d, ModuleList
 
 class BaseGNN(torch.nn.Module):
-    """Base class for GNN models"""
-    def __init__(self, num_node_features, hidden_channels, num_layers, dropout=0.5, 
-                 pool_type='mean', num_classes=1):
+    def __init__(self, num_node_features, hidden_channels, num_layers, dropout=0.5, pool_type='mean'):
         super().__init__()
         self.dropout = dropout
+
+        # Configure pooling function
+        pooling_functions = {
+            'mean': global_mean_pool,
+            'add': global_add_pool,
+            'max': global_max_pool
+        }
+        if pool_type not in pooling_functions:
+            raise ValueError(f"Unsupported pooling type: {pool_type}. Choose from {list(pooling_functions.keys())}")
+        self.pool = pooling_functions[pool_type]
         
-        # Set pooling function
-        self.pool_type = pool_type
-        if pool_type == 'mean':
-            self.pool = global_mean_pool
-        elif pool_type == 'add':
-            self.pool = global_add_pool
-        elif pool_type == 'max':
-            self.pool = global_max_pool
-        else:
-            raise ValueError(f"Unsupported pooling type: {pool_type}")
-        
-        # Batch normalization layers
-        self.batch_norms = ModuleList([
+        # Batch normalization for GNN layers
+        self.gnn_batch_norms = ModuleList([
             BatchNorm1d(hidden_channels) for _ in range(num_layers)
         ])
-        
-        # Output MLP
-        self.linear1 = Linear(hidden_channels, hidden_channels//2)
-        self.linear2 = Linear(hidden_channels//2, num_classes)
 
-    def forward(self, x, edge_index, batch):
-        raise NotImplementedError("Base class doesn't implement forward")
+        # Three-layer MLP with batch normalization
+        self.mlp_layers = ModuleList([
+            Linear(hidden_channels, hidden_channels),
+            Linear(hidden_channels, hidden_channels // 2),
+            Linear(hidden_channels // 2, 1)
+        ])
+        
+        self.mlp_batch_norms = ModuleList([
+            BatchNorm1d(hidden_channels),
+            BatchNorm1d(hidden_channels // 2)
+        ])
+
+    def mlp_forward(self, x):
+        # First MLP layer
+        x = self.mlp_layers[0](x)
+        x = self.mlp_batch_norms[0](x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        # Second MLP layer
+        x = self.mlp_layers[1](x)
+        x = self.mlp_batch_norms[1](x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        # Output layer
+        return self.mlp_layers[2](x)
 
 class GCN(BaseGNN):
-    def __init__(self, num_node_features, hidden_channels=64, num_layers=2, 
-                 dropout=0.5, pool_type='mean', num_classes=1):
-        super().__init__(num_node_features, hidden_channels, num_layers, 
-                        dropout, pool_type, num_classes)
+    def __init__(self, num_node_features, hidden_channels=64, num_layers=3, dropout=0.5, pool_type='mean'):
+        super().__init__(num_node_features, hidden_channels, num_layers, dropout, pool_type)
         
         self.convs = ModuleList()
-        
-        # First layer
         self.convs.append(GCNConv(num_node_features, hidden_channels))
-        
-        # Hidden layers
         for _ in range(num_layers - 1):
             self.convs.append(GCNConv(hidden_channels, hidden_channels))
-    
+
     def forward(self, x, edge_index, batch):
-        # Graph convolution layers
         for i, conv in enumerate(self.convs):
             x = conv(x, edge_index)
-            x = self.batch_norms[i](x)
+            x = self.gnn_batch_norms[i](x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         
-        # Global pooling
         x = self.pool(x, batch)
-        
-        # Final MLP
-        x = self.linear1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.linear2(x)
-        
-        return x
+        return self.mlp_forward(x)
 
 class GAT(BaseGNN):
-    def __init__(self, num_node_features, hidden_channels=64, num_layers=2, 
-                 heads=4, dropout=0.5, pool_type='mean', num_classes=1):
-        # Adjust hidden_channels to account for multi-head attention
-        super().__init__(hidden_channels * heads, hidden_channels * heads, 
-                        num_layers, dropout, pool_type, num_classes)
+    def __init__(self, num_node_features, hidden_channels=32, num_layers=2, heads=4, dropout=0.5, pool_type='mean'):
+        super().__init__(hidden_channels * heads, hidden_channels * heads, num_layers, dropout, pool_type)
         
         self.convs = ModuleList()
-        self.heads = heads
-        
-        # First layer
-        self.convs.append(GATConv(num_node_features, hidden_channels, 
-                                heads=heads, dropout=dropout))
-        
-        # Hidden layers
+        self.convs.append(GATConv(num_node_features, hidden_channels, heads=heads, dropout=dropout))
         for _ in range(num_layers - 1):
-            self.convs.append(GATConv(hidden_channels * heads, hidden_channels, 
-                                    heads=heads, dropout=dropout))
-    
+            self.convs.append(GATConv(hidden_channels * heads, hidden_channels, heads=heads, dropout=dropout))
+
     def forward(self, x, edge_index, batch):
-        # Graph convolution layers
         for i, conv in enumerate(self.convs):
             x = conv(x, edge_index)
-            x = self.batch_norms[i](x)
+            x = self.gnn_batch_norms[i](x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         
-        # Global pooling
         x = self.pool(x, batch)
-        
-        # Final MLP
-        x = self.linear1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.linear2(x)
-        
-        return x
+        return self.mlp_forward(x)
 
 class GraphSAGE(BaseGNN):
-    def __init__(self, num_node_features, hidden_channels=64, num_layers=2, 
-                 dropout=0.5, pool_type='mean', num_classes=1):
-        super().__init__(num_node_features, hidden_channels, num_layers, 
-                        dropout, pool_type, num_classes)
+    def __init__(self, num_node_features, hidden_channels=64, num_layers=3, dropout=0.5, pool_type='max'):
+        super().__init__(num_node_features, hidden_channels, num_layers, dropout, pool_type)
         
         self.convs = ModuleList()
-        
-        # First layer
         self.convs.append(SAGEConv(num_node_features, hidden_channels))
-        
-        # Hidden layers
         for _ in range(num_layers - 1):
             self.convs.append(SAGEConv(hidden_channels, hidden_channels))
-    
+
     def forward(self, x, edge_index, batch):
-        # Graph convolution layers
         for i, conv in enumerate(self.convs):
             x = conv(x, edge_index)
-            x = self.batch_norms[i](x)
+            x = self.gnn_batch_norms[i](x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         
-        # Global pooling
         x = self.pool(x, batch)
-        
-        # Final MLP
-        x = self.linear1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.linear2(x)
-        
-        return x
+        return self.mlp_forward(x)
 
-# Example usage
+class GraphTransformer(BaseGNN):
+    def __init__(self, num_node_features, hidden_channels=32, num_layers=2, heads=4, dropout=0.5, pool_type='mean'):
+        super().__init__(hidden_channels * heads, hidden_channels * heads, num_layers, dropout, pool_type)
+        
+        self.convs = ModuleList()
+        self.convs.append(TransformerConv(
+            num_node_features, hidden_channels,
+            heads=heads, dropout=dropout, edge_dim=None
+        ))
+        for _ in range(num_layers - 1):
+            self.convs.append(TransformerConv(
+                hidden_channels * heads, hidden_channels,
+                heads=heads, dropout=dropout, edge_dim=None
+            ))
+
+    def forward(self, x, edge_index, batch):
+        for i, conv in enumerate(self.convs):
+            x = conv(x, edge_index)
+            x = self.gnn_batch_norms[i](x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+        
+        x = self.pool(x, batch)
+        return self.mlp_forward(x)
+
 def create_gnn_model(model_type, num_features, **kwargs):
-    """
-    Factory function to create GNN models with specific configurations
-    
-    Args:
-        model_type (str): 'GCN', 'GAT', or 'GraphSAGE'
-        num_features (int): Number of input node features
-        **kwargs: Additional model parameters
-    
-    Returns:
-        BaseGNN: Configured GNN model
-    """
+    """Creates a GNN model of the specified type with given parameters."""
     models = {
         'GCN': GCN,
         'GAT': GAT,
-        'GraphSAGE': GraphSAGE
+        'GraphSAGE': GraphSAGE,
+        'Transformer': GraphTransformer
     }
     
     if model_type not in models:
-        raise ValueError(f"Unknown model type: {model_type}")
+        raise ValueError(f"Unknown model type: {model_type}. Choose from {list(models.keys())}")
     
     return models[model_type](num_features, **kwargs)
-
-# Usage example:
-if __name__ == "__main__":
-    # Example configurations
-    configs = {
-        'GCN': {
-            'hidden_channels': 64,
-            'num_layers': 3,
-            'dropout': 0.5,
-            'pool_type': 'mean'
-        },
-        'GAT': {
-            'hidden_channels': 32,
-            'num_layers': 2,
-            'heads': 4,
-            'dropout': 0.5,
-            'pool_type': 'mean'
-        },
-        'GraphSAGE': {
-            'hidden_channels': 64,
-            'num_layers': 3,
-            'dropout': 0.5,
-            'pool_type': 'max'
-        }
-    }
-    
-    # Create models with different configurations
-    num_features = 10  # Example number of features
-    models = {
-        name: create_gnn_model(name, num_features, **config)
-        for name, config in configs.items()
-    }
