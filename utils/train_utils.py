@@ -1,201 +1,204 @@
+# train_utils.py
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report, roc_curve, auc
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score,
+    f1_score, confusion_matrix, roc_curve, auc, roc_auc_score
+)
 from tqdm import tqdm
 import os
 import json
 from datetime import datetime
+from pathlib import Path
 
-class TrainLogger:
-    """Logging class for training metrics and visualization"""
-    def __init__(self, log_dir):
-        self.log_dir = log_dir
-        self.history = {
-            'train_loss': [], 'val_loss': [],
-            'train_acc': [], 'val_acc': [],
-            'train_f1': [], 'val_f1': []
+class MetricsTracker:
+    """Tracks and stores training metrics over time."""
+    def __init__(self, log_dir: str):
+        self.log_dir = Path(log_dir)
+        self.initialize_metrics()
+        
+    def initialize_metrics(self):
+        metrics_list = ['loss', 'accuracy', 'f1', 'precision', 'recall', 'auc']
+        self.metrics = {
+            'train': {metric: [] for metric in metrics_list},
+            'val': {metric: [] for metric in metrics_list}
         }
     
-    def log(self, metrics, phase='train'):
-        for key, value in metrics.items():
-            self.history[f'{phase}_{key}'].append(value)
+    def update(self, phase: str, epoch_metrics: dict):
+        for metric, value in epoch_metrics.items():
+            self.metrics[phase][metric].append(float(value))
     
-    def save_history(self):
-        with open(f'{self.log_dir}/training_history.json', 'w') as f:
-            json.dump(self.history, f)
+    def save(self):
+        with open(self.log_dir / 'training_metrics.json', 'w') as f:
+            json.dump(self.metrics, f, indent=4)
 
-def train_epoch(model, loader, optimizer, criterion, device):
-    """Run one training epoch"""
+def train_epoch(model, loader, optimizer, criterion, device, clip_grad_norm=1.0):
+    """Trains the model for one epoch."""
     model.train()
     total_loss = 0
-    predictions, labels, probs = [], [], []
+    all_labels, all_preds, all_probs = [], [], []
     
-    for data in tqdm(loader, desc='Training'):
+    progress_bar = tqdm(loader, ascii=True)
+    
+    for data in progress_bar:
         data = data.to(device)
         optimizer.zero_grad()
         
-        out = model(data.x, data.edge_index, data.batch)
-        loss = criterion(out.view(-1), data.y.float())
+        outputs = model(data.x, data.edge_index, data.batch)
+        loss = criterion(outputs.view(-1), data.y.float())
         
         loss.backward()
+        if clip_grad_norm:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), clip_grad_norm)
         optimizer.step()
         
+        probs = torch.sigmoid(outputs).view(-1)
+        preds = (probs > 0.5).float()
+        
         total_loss += loss.item() * data.num_graphs
-        probs.extend(torch.sigmoid(out).view(-1).cpu().detach().numpy())
-        predictions.extend((torch.sigmoid(out).view(-1) > 0.5).float().cpu().detach().numpy())
-        labels.extend(data.y.cpu().numpy())
+        all_probs.extend(probs.cpu().detach().numpy())
+        all_preds.extend(preds.cpu().detach().numpy())
+        all_labels.extend(data.y.cpu().numpy())
+        
+        # Update progress bar description
+        curr_loss = loss.item()
+        progress_bar.set_description(f"Loss: {curr_loss:.3f}")
     
-    return {
-        'loss': total_loss / len(loader.dataset),
-        'acc': accuracy_score(labels, predictions),
-        'f1': f1_score(labels, predictions)
-    }
+    return compute_metrics(
+        np.array(all_labels), 
+        np.array(all_preds), 
+        np.array(all_probs),
+        total_loss / len(loader.dataset)
+    )
 
 def validate_epoch(model, loader, criterion, device):
-    """Run one validation epoch"""
+    """Evaluates the model on validation/test data."""
     model.eval()
     total_loss = 0
-    predictions, labels, probs = [], [], []
+    all_labels, all_preds, all_probs = [], [], []
     
     with torch.no_grad():
         for data in loader:
             data = data.to(device)
-            out = model(data.x, data.edge_index, data.batch)
-            loss = criterion(out.view(-1), data.y.float())
+            outputs = model(data.x, data.edge_index, data.batch)
+            loss = criterion(outputs.view(-1), data.y.float())
+            
+            probs = torch.sigmoid(outputs).view(-1)
+            preds = (probs > 0.5).float()
             
             total_loss += loss.item() * data.num_graphs
-            probs.extend(torch.sigmoid(out).view(-1).cpu().numpy())
-            predictions.extend((torch.sigmoid(out).view(-1) > 0.5).float().cpu().numpy())
-            labels.extend(data.y.cpu().numpy())
+            all_probs.extend(probs.cpu().numpy())
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(data.y.cpu().numpy())
     
-    return {
-        'loss': total_loss / len(loader.dataset),
-        'acc': accuracy_score(labels, predictions),
-        'f1': f1_score(labels, predictions)
-    }
+    return compute_metrics(
+        np.array(all_labels), 
+        np.array(all_preds), 
+        np.array(all_probs),
+        total_loss / len(loader.dataset)
+    )
 
-def plot_training_progress(history, model_name, results_dir):
-    """Plot training metrics"""
-    plt.figure(figsize=(15, 5))
-    
-    # Loss plot
-    plt.subplot(131)
-    plt.plot(history['train_loss'], label='Train')
-    plt.plot(history['val_loss'], label='Validation')
-    plt.title('Loss Over Time')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    
-    # Accuracy plot
-    plt.subplot(132)
-    plt.plot(history['train_acc'], label='Train')
-    plt.plot(history['val_acc'], label='Validation')
-    plt.title('Accuracy Over Time')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend()
-    
-    # F1 Score plot
-    plt.subplot(133)
-    plt.plot(history['train_f1'], label='Train')
-    plt.plot(history['val_f1'], label='Validation')
-    plt.title('F1 Score Over Time')
-    plt.xlabel('Epoch')
-    plt.ylabel('F1 Score')
-    plt.legend()
-    
-    plt.tight_layout()
-    plt.savefig(f'{results_dir}/training_progress.png')
-    plt.close()
-
-def evaluate_model(model, loader, device, model_name, results_dir):
-    """Evaluate model and generate performance visualizations"""
-    model.eval()
-    predictions, labels, probs = [], [], []
-    
-    with torch.no_grad():
-        for data in loader:
-            data = data.to(device)
-            out = model(data.x, data.edge_index, data.batch)
-            probs.extend(torch.sigmoid(out).view(-1).cpu().numpy())
-            predictions.extend((torch.sigmoid(out).view(-1) > 0.5).float().cpu().numpy())
-            labels.extend(data.y.cpu().numpy())
-    
-    predictions = np.array(predictions)
-    labels = np.array(labels)
-    probs = np.array(probs)
-    
-    # Generate and save classification report
-    report = classification_report(labels, predictions)
-    with open(f'{results_dir}/classification_report.txt', 'w') as f:
-        f.write(report)
-    
-    # Plot confusion matrix
-    plot_confusion_matrix(labels, predictions, model_name, results_dir)
-    
-    # Plot ROC curve
-    plot_roc_curve(labels, probs, model_name, results_dir)
-    
-    return {
+def compute_metrics(labels, predictions, probabilities, loss=None):
+    """Computes all relevant metrics for binary classification."""
+    metrics = {
         'accuracy': accuracy_score(labels, predictions),
-        'f1': f1_score(labels, predictions)
+        'precision': precision_score(labels, predictions),
+        'recall': recall_score(labels, predictions),
+        'f1': f1_score(labels, predictions),
+        'auc': roc_auc_score(labels, probabilities)
     }
+    if loss is not None:
+        metrics['loss'] = loss
+    return metrics
 
-def plot_confusion_matrix(y_true, y_pred, model_name, results_dir):
-    """Plot and save confusion matrix"""
-    plt.figure(figsize=(8, 6))
-    cm = confusion_matrix(y_true, y_pred)
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-    plt.title(f'{model_name} Confusion Matrix')
-    plt.ylabel('True Label')
-    plt.xlabel('Predicted Label')
-    plt.savefig(f'{results_dir}/confusion_matrix.png')
+def plot_training_curves(metrics_tracker, model_name, save_dir):
+    """Plots detailed training curves for all metrics."""
+    plt.figure(figsize=(20, 10))
+    metrics = ['loss', 'accuracy', 'f1', 'precision', 'recall', 'auc']
+    
+    for idx, metric in enumerate(metrics, 1):
+        plt.subplot(2, 3, idx)
+        plt.plot(metrics_tracker.metrics['train'][metric], label='Train')
+        plt.plot(metrics_tracker.metrics['val'][metric], label='Validation')
+        plt.title(f'{metric.capitalize()} Over Time')
+        plt.xlabel('Epoch')
+        plt.ylabel(metric.capitalize())
+        plt.grid(True)
+        plt.legend()
+
+    plt.suptitle(f'{model_name} Training Progress', y=1.02)
+    plt.tight_layout()
+    plt.savefig(Path(save_dir) / 'training_curves.png')
     plt.close()
 
-def plot_roc_curve(y_true, y_prob, model_name, results_dir):
-    """Plot and save ROC curve"""
-    plt.figure(figsize=(8, 6))
-    fpr, tpr, _ = roc_curve(y_true, y_prob)
-    roc_auc = auc(fpr, tpr)
-    plt.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
-    plt.plot([0, 1], [0, 1], 'k--')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(f'{model_name} ROC Curve')
-    plt.legend()
-    plt.savefig(f'{results_dir}/roc_curve.png')
+def plot_model_comparison(results_dict, models, test_loader, device, save_dir):
+    """
+    Creates a comprehensive model comparison visualization with accuracy curves and ROC curves.
+    
+    Args:
+        results_dict: Dictionary containing training metrics for each model
+        models: Dictionary of trained models
+        test_loader: DataLoader for test data
+        device: Training device (CPU/GPU)
+        save_dir: Directory to save the plot
+    """
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # Training and Validation Accuracy Curves
+    for model_name, metrics in results_dict.items():
+        ax1.plot(metrics.metrics['train']['accuracy'], 
+                linestyle='-', label=f'{model_name} (Train)')
+        ax1.plot(metrics.metrics['val']['accuracy'], 
+                linestyle='--', label=f'{model_name} (Val)')
+    
+    ax1.set_title('Training and Validation Accuracy')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Accuracy')
+    ax1.grid(True)
+    ax1.legend()
+
+    # ROC Curves
+    for model_name, model in models.items():
+        model.eval()
+        all_labels = []
+        all_probs = []
+        
+        with torch.no_grad():
+            for data in test_loader:
+                data = data.to(device)
+                outputs = model(data.x, data.edge_index, data.batch)
+                probs = torch.sigmoid(outputs).view(-1).cpu().numpy()
+                all_probs.extend(probs)
+                all_labels.extend(data.y.cpu().numpy())
+
+        fpr, tpr, _ = roc_curve(all_labels, all_probs)
+        roc_auc = auc(fpr, tpr)
+        ax2.plot(fpr, tpr, label=f'{model_name} (AUC = {roc_auc:.3f})')
+
+    ax2.plot([0, 1], [0, 1], 'k--', label='Random')
+    ax2.set_xlim([0.0, 1.0])
+    ax2.set_ylim([0.0, 1.05])
+    ax2.set_xlabel('False Positive Rate')
+    ax2.set_ylabel('True Positive Rate')
+    ax2.set_title('ROC Curves')
+    ax2.grid(True)
+    ax2.legend()
+
+    plt.suptitle('Model Performance Comparison', y=1.02)
+    plt.tight_layout()
+    plt.savefig(Path(save_dir) / 'model_comparison.png', 
+                bbox_inches='tight', dpi=300)
     plt.close()
 
-def compare_models(results, save_dir):
-    """Generate model comparison visualizations"""
-    metrics = ['accuracy', 'f1']
-    model_names = list(results.keys())
+def setup_experiment(model_name: str, config: dict) -> Path:
+    """Sets up experiment directory and saves configuration."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    exp_dir = Path('results') / f'{model_name}_{timestamp}'
+    exp_dir.mkdir(parents=True, exist_ok=True)
     
-    plt.figure(figsize=(10, 6))
-    x = np.arange(len(metrics))
-    width = 0.8 / len(model_names)
-    
-    for i, model_name in enumerate(model_names):
-        values = [results[model_name]['metrics'][m] for m in metrics]
-        plt.bar(x + i*width, values, width, label=model_name)
-    
-    plt.xlabel('Metrics')
-    plt.ylabel('Score')
-    plt.title('Model Comparison')
-    plt.xticks(x + width*(len(model_names)-1)/2, metrics)
-    plt.legend()
-    plt.savefig(f'{save_dir}/model_comparison.png')
-    plt.close()
-
-def setup_training(model_name, config):
-    """Setup training directories and save config"""
-    results_dir = f'results/{model_name}_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
-    os.makedirs(results_dir, exist_ok=True)
-    
-    with open(f'{results_dir}/config.json', 'w') as f:
+    with open(exp_dir / 'config.json', 'w') as f:
         json.dump(config, f, indent=4)
     
-    return results_dir
+    return exp_dir
