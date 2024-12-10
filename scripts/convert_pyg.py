@@ -1,15 +1,82 @@
 import pandas as pd
 import os
 import sys
+import networkx as nx
+import matplotlib.pyplot as plt
+import torch
+from sklearn.model_selection import train_test_split
+
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 from utils.pyg_converter import create_pyg_dataset, save_graph_list
+from utils.graph_visualize import visualize_head_tail_pyg_data
+
 df = pd.read_parquet('processed_data/men_imbalanced_node_features_checked.parquet')
 df.drop(columns=['player_num_label'], inplace=True)
 
-pyg_data_list = create_pyg_dataset(df)
+# First get unique game_ids
+unique_games = df['game_id'].unique()
 
-# Save the PyG dataset
-save_graph_list(pyg_data_list, 'processed_data', "men_imbalanced_graph_dataset") 
-length_data_list = len(pyg_data_list)
-print(f"Save {length_data_list} graphs to processed_data.")
+# Split game_ids into train (70%), validation (15%), and test (15%)
+train_games, temp_games = train_test_split(unique_games, test_size=0.3, random_state=42)
+val_games, test_games = train_test_split(temp_games, test_size=0.5, random_state=42)
+
+# Split the original dataframe based on game_ids
+train_df = df[df['game_id'].isin(train_games)].copy()
+val_df = df[df['game_id'].isin(val_games)].copy()
+test_df = df[df['game_id'].isin(test_games)].copy()
+
+# Now balance only the training set
+train_unique_frames = train_df.drop_duplicates(['game_id', 'frame_id', 'success'])
+class_counts = train_unique_frames.groupby('success').size()
+min_class_count = min(class_counts)
+
+balanced_train_frames = pd.concat([
+    train_unique_frames[train_unique_frames['success'] == 0].sample(n=min_class_count, random_state=42),
+    train_unique_frames[train_unique_frames['success'] == 1].sample(n=min_class_count, random_state=42)
+])
+
+# Get all rows for the balanced frame_id/game_id combinations
+balanced_train_df = pd.merge(
+    train_df,
+    balanced_train_frames[['game_id', 'frame_id']],
+    on=['game_id', 'frame_id']
+)
+
+# Print statistics
+print("=== Dataset Split Statistics ===")
+print("\nUnique game_ids in each split:")
+print(f"Train: {len(train_games)}")
+print(f"Val: {len(val_games)}")
+print(f"Test: {len(test_games)}")
+
+print("\n=== Original Training Set ===")
+print(train_df.drop_duplicates(['game_id', 'frame_id', 'success']).groupby('success').size())
+
+print("\n=== Balanced Training Set ===")
+print(balanced_train_df.drop_duplicates(['game_id', 'frame_id', 'success']).groupby('success').size())
+
+print("\n=== Validation Set ===")
+print(val_df.drop_duplicates(['game_id', 'frame_id', 'success']).groupby('success').size())
+
+print("\n=== Test Set ===")
+print(test_df.drop_duplicates(['game_id', 'frame_id', 'success']).groupby('success').size())
+
+# Create PyG datasets
+train_pyg_data_list = create_pyg_dataset(balanced_train_df)
+val_pyg_data_list = create_pyg_dataset(val_df)
+test_pyg_data_list = create_pyg_dataset(test_df)
+
+# Call the visualization function for training set
+print("\nVisualizing training set graphs:")
+visualize_head_tail_pyg_data(train_pyg_data_list)
+
+# Save the PyG datasets for each split
+save_graph_list(train_pyg_data_list, 'processed_data', "men_balanced_train_graph_dataset")
+save_graph_list(val_pyg_data_list, 'processed_data', "men_imbalanced_val_graph_dataset")
+save_graph_list(test_pyg_data_list, 'processed_data', "men_imbalanced_test_graph_dataset")
+
+# Print sizes of each split
+print(f"\nSaved {len(train_pyg_data_list)} training graphs")
+print(f"Saved {len(val_pyg_data_list)} validation graphs")
+print(f"Saved {len(test_pyg_data_list)} test graphs")

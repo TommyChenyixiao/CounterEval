@@ -83,11 +83,14 @@ def train_model(model, train_loader, val_loader, device, model_name, config, res
     logger.save_history()
     final_metrics = evaluate_model(model, val_loader, device, model_name, results_dir)
     
+    # Return the trained model, training history, and final metrics
     return model, logger.history, final_metrics
 
 def main():
-    # Load data
-    graph_list = torch.load('processed_data/men_imbalanced_graph_dataset.pt')
+    # Load split datasets
+    train_data = torch.load('processed_data/men_balanced_train_graph_dataset.pt')
+    val_data = torch.load('processed_data/men_imbalanced_val_graph_dataset.pt')
+    test_data = torch.load('processed_data/men_imbalanced_test_graph_dataset.pt')
     
     # Model configurations
     model_configs = {
@@ -121,20 +124,24 @@ def main():
         'patience': 10,
         'plot_interval': 10,
         'scheduler': 'reduce_on_plateau',
-        'pos_weight': 2.0
+        'pos_weight': 2.0  # Adjust this based on your class distribution if needed
     }
     
-    # Prepare data
-    train_idx = int(len(graph_list) * 0.8)
-    train_dataset = graph_list[:train_idx]
-    val_dataset = graph_list[train_idx:]
+    # Create data loaders
+    train_loader = DataLoader(train_data, batch_size=train_config['batch_size'], shuffle=True)
+    val_loader = DataLoader(val_data, batch_size=train_config['batch_size'])
+    test_loader = DataLoader(test_data, batch_size=train_config['batch_size'])
     
-    train_loader = DataLoader(train_dataset, batch_size=train_config['batch_size'], shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=train_config['batch_size'])
-    
-    num_features = graph_list[0].num_features
+    # Get number of features from the first graph
+    num_features = train_data[0].num_features
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
+    
+    # Print dataset sizes
+    print(f"\nDataset sizes:")
+    print(f"Training: {len(train_data)} graphs")
+    print(f"Validation: {len(val_data)} graphs")
+    print(f"Test: {len(test_data)} graphs")
     
     # Train models
     results = {}
@@ -152,17 +159,30 @@ def main():
             config, results_dir
         )
         
+        # Evaluate on test set
+        print(f"\nEvaluating {model_name} on test set:")
+        test_metrics = evaluate_model(trained_model, test_loader, device, 
+                                    f"{model_name}_test", results_dir)
+        
         # Store results
         results[model_name] = {
             'model': trained_model,
             'history': history,
-            'metrics': metrics,
+            'val_metrics': metrics,
+            'test_metrics': test_metrics,
             'config': config
         }
         
         # Save model
         os.makedirs('models', exist_ok=True)
         torch.save(trained_model.state_dict(), f'models/{model_name.lower()}_model.pt')
+        
+        # Print test results
+        print(f"\nTest Results for {model_name}:")
+        print(f"Accuracy: {test_metrics['acc']:.4f}")
+        print(f"F1 Score: {test_metrics['f1']:.4f}")
+        print(f"Precision: {test_metrics['precision']:.4f}")
+        print(f"Recall: {test_metrics['recall']:.4f}")
     
     # Compare models
     compare_models(results, 'results/model_comparison')
