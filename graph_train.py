@@ -110,15 +110,22 @@ def main():
         )
         
         test_metrics = validate_epoch(model, test_loader, torch.nn.BCEWithLogitsLoss(), device)
+        models_test_metrics[model_name] = test_metrics  # Store test metrics
+        
         print(f'\nTest Results for {model_name}:')
         print(f'F1: {test_metrics["f1"]:.3f} | AUC: {test_metrics["auc"]:.3f} | Acc: {test_metrics["accuracy"]:.3f}')
-               
+        
         results_dict[model_name] = metrics_tracker
         trained_models[model_name] = model
     
     total_training_time = time.time() - training_start
-    save_results_summary(results_dict, models_test_metrics, total_training_time, 'results', start_time)
-    plot_model_comparison(results_dict, trained_models, test_loader, device, 'results')
+    
+    experiments_dir = Path('experiments')
+    experiments_dir.mkdir(exist_ok=True)
+    
+    # Save results and plots with proper paths
+    save_results_summary(results_dict, models_test_metrics, total_training_time, experiments_dir, start_time)
+    plot_model_comparison(results_dict, trained_models, test_loader, device, experiments_dir)
 
 if __name__ == '__main__':
     main()
