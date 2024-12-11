@@ -1,0 +1,14 @@
+{
+    "hidden_channels": 32,
+    "num_layers": 2,
+    "heads": 4,
+    "dropout": 0.5,
+    "pool_type": "mean",
+    "epochs": 100,
+    "lr": 0.0005,
+    "weight_decay": 0.0005,
+    "batch_size": 32,
+    "patience": 10,
+    "scheduler": "reduce_on_plateau",
+    "clip_grad_norm": 1.0
+}
