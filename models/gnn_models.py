@@ -26,33 +26,20 @@ class BaseGNN(torch.nn.Module):
             BatchNorm1d(hidden_channels) for _ in range(num_layers)
         ])
 
-        # Three-layer MLP with batch normalization
-        self.mlp_layers = ModuleList([
-            Linear(hidden_channels, hidden_channels),
-            Linear(hidden_channels, hidden_channels // 2),
-            Linear(hidden_channels // 2, 1)
-        ])
-        
-        self.mlp_batch_norms = ModuleList([
-            BatchNorm1d(hidden_channels),
-            BatchNorm1d(hidden_channels // 2)
-        ])
+        # Two-layer MLP with batch normalization
+        self.mlp_hidden = Linear(hidden_channels, hidden_channels // 2)
+        self.mlp_output = Linear(hidden_channels // 2, 1)
+        self.bn = BatchNorm1d(hidden_channels // 2)
 
     def mlp_forward(self, x):
-        # First MLP layer
-        x = self.mlp_layers[0](x)
-        x = self.mlp_batch_norms[0](x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        
-        # Second MLP layer
-        x = self.mlp_layers[1](x)
-        x = self.mlp_batch_norms[1](x)
+        # Hidden layer with batch normalization
+        x = self.mlp_hidden(x)
+        x = self.bn(x)
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
         
         # Output layer
-        return self.mlp_layers[2](x)
+        return self.mlp_output(x)
 
 class GCN(BaseGNN):
     def __init__(self, num_node_features, hidden_channels=64, num_layers=3, dropout=0.5, pool_type='mean'):
