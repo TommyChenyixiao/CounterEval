@@ -12,7 +12,7 @@ from utils.pyg_converter import create_pyg_dataset, save_graph_list
 from utils.graph_visualize import visualize_head_tail_pyg_data
 
 df = pd.read_parquet('processed_data/men_imbalanced_node_features_checked.parquet')
-df.drop(columns=['player_num_label'], inplace=True)
+
 
 # First get unique game_ids
 unique_games = df['game_id'].unique()
@@ -25,6 +25,18 @@ val_games, test_games = train_test_split(temp_games, test_size=0.5, random_state
 train_df = df[df['game_id'].isin(train_games)].copy()
 val_df = df[df['game_id'].isin(val_games)].copy()
 test_df = df[df['game_id'].isin(test_games)].copy()
+
+# Combine the training and validation sets
+combined_train_val_df = pd.concat([train_df, val_df])
+
+# output the parquet files
+combined_train_val_df.to_parquet('processed_data/men_imbalanced_node_features_train.parquet')
+test_df.to_parquet('processed_data/men_imbalanced_node_features_test.parquet')
+
+# Drop Playernumber labels
+train_df.drop(columns=['player_num_label'], inplace=True)
+val_df.drop(columns=['player_num_label'], inplace=True)
+test_df.drop(columns=['player_num_label'], inplace=True)
 
 # Now balance only the training set
 train_unique_frames = train_df.drop_duplicates(['game_id', 'frame_id', 'success'])
