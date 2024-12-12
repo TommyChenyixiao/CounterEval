@@ -70,17 +70,17 @@ def main():
     
     model_configs = {
         'GCN': {'hidden_channels': 32, 'num_layers': 2, 'dropout': 0.5, 'pool_type': 'mean'},
-        'GAT': {'hidden_channels': 32, 'num_layers': 2, 'heads': 6, 'dropout': 0.5, 'pool_type': 'mean'},
+        'GAT': {'hidden_channels': 32, 'num_layers': 2, 'heads': 4, 'dropout': 0.5, 'pool_type': 'mean'},
         'GraphSAGE': {'hidden_channels': 32, 'num_layers': 2, 'dropout': 0.5, 'pool_type': 'max'},
-        'Transformer': {'hidden_channels': 32, 'num_layers': 2, 'heads': 6, 'dropout': 0.5, 'pool_type': 'mean'}
+        'Transformer': {'hidden_channels': 32, 'num_layers': 2, 'heads': 4, 'dropout': 0.5, 'pool_type': 'mean'}
     }
     
     train_config = {
-        'epochs': 200,
-        'lr': 0.001,
+        'epochs': 100,
+        'lr': 0.0005,
         'weight_decay': 5e-4,
         'batch_size': 32,
-        'patience': 20,
+        'patience': 10,
         'scheduler': 'reduce_on_plateau',
         'clip_grad_norm': 1.0
     }
@@ -120,12 +120,12 @@ def main():
     
     total_training_time = time.time() - training_start
     
-    experiments_dir = Path('experiments')
-    experiments_dir.mkdir(exist_ok=True)
+    results_dir = Path('results')
+    results_dir.mkdir(exist_ok=True)
     
     # Save results and plots with proper paths
-    save_results_summary(results_dict, models_test_metrics, total_training_time, experiments_dir, start_time)
-    plot_model_comparison(results_dict, trained_models, test_loader, device, experiments_dir)
+    save_results_summary(results_dict, models_test_metrics, total_training_time, results_dir, start_time)
+    plot_model_comparison(results_dict, trained_models, test_loader, device, results_dir)
 
 if __name__ == '__main__':
     main()
