@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 from utils.pyg_converter import create_pyg_dataset, save_graph_list
-from utils.graph_visualize import visualize_head_tail_pyg_data
+from utils.graph_visualize import visualize_head_tail_pyg_data, save_sample_visualizations
 
 df = pd.read_parquet('processed_data/men_imbalanced_node_features_checked.parquet')
 
@@ -82,6 +82,7 @@ test_pyg_data_list = create_pyg_dataset(test_df)
 # Call the visualization function for training set
 print("\nVisualizing training set graphs:")
 visualize_head_tail_pyg_data(train_pyg_data_list)
+save_sample_visualizations(train_pyg_data_list, save_dir='experiments', num_samples=1)
 
 # Save the PyG datasets for each split
 save_graph_list(train_pyg_data_list, 'processed_data', "men_balanced_train_graph_dataset")
