@@ -5,7 +5,9 @@ __pycache__/
 
 # C extensions
 *.so
-
+# Test files
+test_label.ipynb
+Men_Manually_check.ipynb
 # Large data files
 *.pt
 *.pkl
