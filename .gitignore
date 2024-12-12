@@ -8,6 +8,7 @@ __pycache__/
 # Test files
 test_label.ipynb
 Men_Manually_check.ipynb
+test_eval.ipynb
 # Large data files
 *.pt
 *.pkl
@@ -16,6 +17,8 @@ Men_Manually_check.ipynb
 *.npy
 *.npz
 *.parquet
+*.csv
+vis/
 # Distribution / packaging
 .Python
 build/
