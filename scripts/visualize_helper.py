@@ -9,6 +9,8 @@ import matplotlib.animation as animation
 import matplotsoccer
 import tempfile
 import plotly.express as px
+import shutil
+import os
 
 def setup_title():
     st.title("Soccer Position Animation")
@@ -159,6 +161,11 @@ def create_animation(data, game_id):
 if __name__ == "__main__":
     setup_title()
     dataset_type, data = load_data()
+    
+    # Create output directory if it doesn't exist
+    output_dir = "saved_animations"
+    os.makedirs(output_dir, exist_ok=True)
+    
     # All possible game_id
     game_ids = sorted(data["game_id"].unique())
     if dataset_type == "Live":
@@ -170,33 +177,41 @@ if __name__ == "__main__":
         st.session_state.last_generated_game_id = selected_game_id
 
         # Button to generate animation for the selected game ID from the dropdown
-        col1, col2 = st.sidebar.columns([1, 1])
+        col1, col2, col3 = st.sidebar.columns([1, 1, 1])
         with col1:
             if st.button("Prev", help="Go to the previous Game ID", key="prev"):
-                # Get the index of the current game ID
                 current_index = game_ids.index(st.session_state.last_generated_game_id)
-                # Determine the previous index, wrapping around if necessary
                 prev_index = (current_index - 1) % len(game_ids)
-                # Update the last generated game ID to the previous one
                 st.session_state.last_generated_game_id = game_ids[prev_index]
-                # Update the selected game ID to reflect the changes
                 selected_game_id = st.session_state.last_generated_game_id
 
         with col2:
             if st.button("Next", help="Go to the next Game ID", key="next"):
-                # Get the index of the current game ID
                 current_index = game_ids.index(st.session_state.last_generated_game_id)
-                # Determine the next index, wrapping around if necessary
                 next_index = (current_index + 1) % len(game_ids)
-                # Update the last generated game ID to the next one
                 st.session_state.last_generated_game_id = game_ids[next_index]
-                # Update the selected game ID to reflect the changes
                 selected_game_id = st.session_state.last_generated_game_id
         
         st.sidebar.write(f"**Selected Game ID:** {st.session_state.last_generated_game_id}")
-        # Button to generate an animation for the currently selected game ID
-        if st.sidebar.button("Generate Animation", help="Generate GIF for selected game ID", key="generate"):
+        
+        # Create two columns for Generate and Save buttons
+        gen_col, save_col = st.sidebar.columns(2)
+        
+        # Generate Animation button
+        if gen_col.button("Generate Animation", help="Generate GIF for selected game ID", key="generate"):
             # Generate the animation for the selected game ID
             animation_file = create_animation(data, selected_game_id)
+            # Store the animation file path in session state
+            st.session_state.animation_file = animation_file
             st.image(animation_file, caption=f"Animation for Game ID: {selected_game_id}")
+        
+        # Save Animation button
+        if save_col.button("Save Animation", help="Save current animation", key="save"):
+            if hasattr(st.session_state, 'animation_file'):
+                output_path = os.path.join(output_dir, f"game_{st.session_state.last_generated_game_id}_animation.gif")
+                shutil.copy2(st.session_state.animation_file, output_path)
+                st.sidebar.success(f"Animation saved to {output_path}")
+            else:
+                st.sidebar.error("Please generate an animation first")
+
 
