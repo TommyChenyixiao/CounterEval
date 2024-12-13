@@ -8,7 +8,7 @@ from loguru import logger
 from sklearn.model_selection import train_test_split
 from datasets import MovementDataset
 from model import MovementModel
-from learner import Trainer
+from learner import Learner
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -97,21 +97,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a player movement model.')
 
     # Macro arguments
-    parser.add_argument('-d', '--data_path', type=str, help='Path to the player tracking data.', default='../../processed_data/men_imbalanced_node_features_numbered.parquet')
+    parser.add_argument('-d', '--data_path', type=str, help='Path to the player tracking data.', default='../../processed_data/men_imbalanced_node_features_train.parquet')
     parser.add_argument('-o', '--output_dir', type=str, help='Path to save the model.', default='../../models/')
     parser.add_argument('-l', '--log_path', type=str, help='Path to save the log file.', default='movement_model.log')
-    parser.add_argument('-r', '--reprocess', type=bool, help='Reprocess', default=False)
+    parser.add_argument('-r', '--reprocess', type=bool, help='Reprocess', default=True)
+    parser.add_argument('--test_data_path', type=str, help='Path to the player tracking data.', default='../../processed_data/men_imbalanced_node_features_test.parquet')
     # Data arguments
     parser.add_argument('-w', '--window_size', type=int, help='Window size for the model.', default=None)
     parser.add_argument('--features_path', type=str, help='Path to the feature file.', default='./features.txt')
 
     parser.add_argument("--betas", type=tuple, default=(0.9,0.9999))
-    parser.add_argument("--regularizer", type=float, default=0.0)
+    parser.add_argument("--regularizer", type=float, default=0.001)
     parser.add_argument("--lr", type=float, default=0.005)
     parser.add_argument("--eps", type=float, default=1e-8)
     parser.add_argument("--num_steps", type=int, default=0)
 
-    parser.add_argument("--num_epochs", type=int, default=100)
+    parser.add_argument("--num_epochs", type=int, default=30)
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--max_grad_clip", type=float, default=None)
     parser.add_argument("--max_grad_norm", type=float, default=None)
@@ -130,15 +131,29 @@ if __name__ == '__main__':
     else:
         df = pd.read_parquet(args.data_path)
         Xs, ys = prepare_data(df, args)
+        Xs, ys = np.array(Xs), np.array(ys)
         logger.info(f"Data prepared. Xs shape: {len(Xs)}, ys shape: {len(ys)}")
         # Save under data_path
         Xs_path = os.path.join(os.path.dirname(args.data_path), 'Xs.npy')
         ys_path = os.path.join(os.path.dirname(args.data_path), 'ys.npy')
         np.save(Xs_path, Xs)
         np.save(ys_path, ys)
+    if not args.reprocess and ('Xs_test.npy' in os.listdir(os.path.dirname(args.test_data_path)) and 'ys_test.npy' in os.listdir(os.path.dirname(args.test_data_path))):
+        Xs_test = np.load(os.path.join(os.path.dirname(args.test_data_path), 'Xs_test.npy'), allow_pickle=True)
+        ys_test = np.load(os.path.join(os.path.dirname(args.test_data_path), 'ys_test.npy'), allow_pickle=True)
+        logger.info(f"Test data loaded. Xs shape: {len(Xs_test)}, ys shape: {len(ys_test)}")
+    else:
+        test_data = pd.read_parquet(args.test_data_path)
+        Xs_test, ys_test = prepare_data(test_data, args)
+        Xs_test, ys_test = np.array(Xs_test), np.array(ys_test)
+        logger.info(f"Test data prepared. Xs shape: {len(Xs_test)}, ys shape: {len(ys_test)}")
+        # Save under test_data_path
+        Xs_test_path = os.path.join(os.path.dirname(args.test_data_path), 'Xs_test.npy')
+        ys_test_path = os.path.join(os.path.dirname(args.test_data_path), 'ys_test.npy')
+        np.save(Xs_test_path, Xs_test)
+        np.save(ys_test_path, ys_test)
 
-    Xs_train, Xs_test, ys_train, ys_test = train_test_split(Xs, ys, test_size=0.2, random_state=42)
-    Xs_train, Xs_val, ys_train, ys_val = train_test_split(Xs_train, ys_train, test_size=0.2, random_state=42)
+    Xs_train, Xs_val, ys_train, ys_val = train_test_split(Xs, ys, test_size=0.2, random_state=42)
 
     # normalize the data for continuous features
     X_mean = np.mean(Xs_train[:, :, :-3], axis=(0, 1))
@@ -167,7 +182,7 @@ if __name__ == '__main__':
     test_dataset = MovementDataset(Xs_test, ys_test, split='test')
 
     context_dim = Xs_train[0].shape[-1]
-    model = MovementModel(2, context_dim, 2, 1, 2)
+    model = MovementModel(2, context_dim, 2, 2, 3)
     model.to(device)
 
     logger.info("Number of param: {}".format(count_parameters(model)))
@@ -176,7 +191,7 @@ if __name__ == '__main__':
 
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.70)
 
-    trainer = Trainer(model, optim, scheduler, train_dataset, val_dataset, args, device, logger)
-    trainer.train()
+    learner = Learner(model, optim, scheduler, train_dataset, val_dataset, test_dataset, args, device, logger)
+    learner.train()
 
-
+    learner.test()

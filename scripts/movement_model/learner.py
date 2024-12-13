@@ -1,11 +1,12 @@
 import torch
 import os
+import numpy as np
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-class Trainer(object):
+class Learner(object):
 
-    def __init__(self, graph, optim, scheduler, train_data, val_data, args, device, logger):
+    def __init__(self, graph, optim, scheduler, train_data, val_data, test_data, args, device, logger):
         
         # model
         self.graph = graph
@@ -20,8 +21,10 @@ class Trainer(object):
         self.batch_size = args.batch_size
         self.train_data = train_data
         self.val_data = val_data
+        self.test_data = test_data
         self.train_dataloader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True, drop_last=True)
         self.val_dataloader = DataLoader(val_data, batch_size=self.batch_size, shuffle=False, drop_last=False)
+        self.test_dataloader = DataLoader(test_data, batch_size=self.batch_size, shuffle=False, drop_last=False)
 
         self.num_epochs = args.num_epochs
         self.args = args
@@ -94,3 +97,22 @@ class Trainer(object):
             self.writer.add_scalar('KLD/val', total_kld / len(self.val_dataloader), epoch)
             self.logger.info(f"Validation loss: {total_loss / len(self.val_dataloader)}")
         # self.writer.flush()
+
+    def test(self):
+        self.logger.info("Start testing")
+        self.graph.eval()
+
+        num_batches = len(self.test_dataloader)
+        with torch.no_grad():
+            total_mse = 0
+            for i, (X, y) in enumerate(self.test_dataloader):
+                X = X.to(self.device)
+                y = y.to(self.device)
+                # for each sample, we sample multiple times to get the mean mse loss
+                sample_mse = []
+                for _ in range(10):
+                    recon_batch, mu, logvar = self.graph(y, X)
+                    loss, mse, kld = self.graph.loss(recon_batch, y, mu, logvar)
+                    sample_mse.append(mse.item())
+                total_mse += np.mean(sample_mse)
+            self.logger.info(f"Test MSE: {total_mse / len(self.test_dataloader)}")
