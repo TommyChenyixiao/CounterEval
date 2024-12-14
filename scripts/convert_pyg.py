@@ -11,27 +11,15 @@ sys.path.append(project_root)
 from utils.pyg_converter import create_pyg_dataset, save_graph_list
 from utils.graph_visualize import visualize_head_tail_pyg_data, save_sample_visualizations
 
-df = pd.read_parquet('processed_data/men_imbalanced_node_features_checked.parquet')
+train_val_df = pd.read_parquet('processed_data/men_imbalanced_node_features_train.parquet')
+test_df = pd.read_parquet('processed_data/men_imbalanced_node_features_test.parquet')
 
+unique_games = train_val_df['game_id'].unique()
+test_games = test_df['game_id'].unique()
+train_games, val_games = train_test_split(unique_games, test_size=0.17, random_state=42)
+train_df = train_val_df[train_val_df['game_id'].isin(train_games)].copy()
+val_df = train_val_df[train_val_df['game_id'].isin(val_games)].copy()
 
-# First get unique game_ids
-unique_games = df['game_id'].unique()
-
-# Split game_ids into train (70%), validation (15%), and test (15%)
-train_games, temp_games = train_test_split(unique_games, test_size=0.3, random_state=42)
-val_games, test_games = train_test_split(temp_games, test_size=0.5, random_state=42)
-
-# Split the original dataframe based on game_ids
-train_df = df[df['game_id'].isin(train_games)].copy()
-val_df = df[df['game_id'].isin(val_games)].copy()
-test_df = df[df['game_id'].isin(test_games)].copy()
-
-# Combine the training and validation sets
-combined_train_val_df = pd.concat([train_df, val_df])
-
-# output the parquet files
-combined_train_val_df.to_parquet('processed_data/men_imbalanced_node_features_train.parquet')
-test_df.to_parquet('processed_data/men_imbalanced_node_features_test.parquet')
 
 # Drop Playernumber labels
 train_df.drop(columns=['player_num_label'], inplace=True)
