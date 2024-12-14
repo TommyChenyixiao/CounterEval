@@ -13,7 +13,7 @@ class SoccerDataset(Dataset):
         self.graph_keys = list(self.grouped.groups.keys())
         
         # Define which columns to use as node features
-        self.feature_cols = ['x', 'y', 'vx', 'vy', 'v', 'angle_v', 'dist_goal', 
+        self.feature_cols = ['x', 'y', 'vx', 'vy', 'v', 'dist_goal', 
                            'angle_goal', 'dist_ball', 'angle_ball', 'att_team',
                            'potential_receiver', 'sin_ax', 'cos_ay', 'a', 'sin_a', 
                            'cos_a', 'dist_to_left_boundary', 'dist_to_right_boundary']
