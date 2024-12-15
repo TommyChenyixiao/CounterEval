@@ -168,7 +168,7 @@ def main():
     
     # Load model
     model_dir = Path('results/GAT/best_model.pt')
-    num_features = 19
+    num_features = 18
     model = load_trained_gat_model(model_dir, num_features)
     
     # Game selection
