@@ -1,0 +1,14 @@
+Model Performance Summary
+================================================================================
+
+Experiment Details:
+Start Time: 20241214_164138
+Total Training Duration: 3591.00 seconds
+
+Test Performance Metrics:
+Model           Test Acc   Test F1    Test AUC   Best Val Loss   Best Val F1
+--------------------------------------------------------------------------------
+GCN             0.629      0.466      0.612      0.624           0.453     
+GAT             0.584      0.485      0.619      0.674           0.415     
+GraphSAGE       0.313      0.475      0.595      0.961           0.405     
+Transformer     0.582      0.478      0.618      0.647           0.373     
