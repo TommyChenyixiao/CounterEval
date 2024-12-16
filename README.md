@@ -115,7 +115,6 @@ To evaluate the success probability of a counterattack, we develop a **GAT-based
    - Fully connected graph $G = (V, E)$ with player nodes $v \in V$ and edges $e \in E$.
 2. **Graph Attention Mechanism:**
    - Attention coefficients $\alpha_{ij}$ are computed to assign importance to neighboring nodes:
-
      $$
      \alpha_{ij} = \frac{\exp\left( \text{LeakyReLU} \left( a^T [W X_i \| W X_j] \right) \right)}{\sum_{k \in N_i} \exp\left( \text{LeakyReLU} \left( a^T [W X_i \| W X_k] \right) \right)}.
      $$
