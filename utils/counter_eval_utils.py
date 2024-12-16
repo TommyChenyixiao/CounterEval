@@ -109,6 +109,13 @@ def create_counterfactual_dataset(df_actual, df_loc, game_id, frame_id, player_n
     # Filter the actual data for the specific frame
     base_data = df_actual[(df_actual['game_id'] == game_id) & 
         (df_actual['frame_id'] == frame_id)].copy()
+    last_frame_data = df_actual[(df_actual['game_id'] == game_id) &
+        (df_actual['frame_id'] == frame_id - 1)].copy()
+    ball_data = df_actual[(df_actual['game_id'] == game_id) &
+        (df_actual['frame_id'] == frame_id) &
+        (df_actual['player_num_label'] == 0)].copy()
+    
+    base_data_by_team = base_data.loc[base_data["att_team"] != -1].groupby('att_team').agg({'x': ['min', 'max']})
     
     # For each sample
     for idx, sample in samples.iterrows():
@@ -122,9 +129,56 @@ def create_counterfactual_dataset(df_actual, df_loc, game_id, frame_id, player_n
         )
         
         # Replace x, y coordinates for the specific player
+        # Also based on the location, create other counterfactual features
+        # ['x', 'y', 'vx', 'vy', 'v', 'angle_v', 'dist_goal', 
+                        #    'angle_goal', 'dist_ball', 'angle_ball', 'att_team',
+                        #    'potential_receiver', 'sin_ax', 'cos_ay', 'a', 'sin_a', 
+                        #    'cos_a', 'dist_to_left_boundary', 'dist_to_right_boundary']
+        # sample only includes x, y, and player_num_label and we need to infer the rest
+        true_x = cf_data.loc[mask, 'x'].values[0]
+        true_y = cf_data.loc[mask, 'y'].values[0]
+        true_v = cf_data.loc[mask, 'v'].values[0]
+        true_vx = cf_data.loc[mask, 'vx'].values[0]
+        true_vy = cf_data.loc[mask, 'vy'].values[0]
+        last_frame_x = last_frame_data[last_frame_data['player_num_label'] == sample['player_num_label']]['x'].values[0]
+        last_frame_y = last_frame_data[last_frame_data['player_num_label'] == sample['player_num_label']]['y'].values[0]
+        team = cf_data.loc[mask, 'att_team'].values[0]
+        if team == -1:
+            continue
+        ball_x = ball_data['x'].values[0]
+        ball_y = ball_data['y'].values[0]
+
+        t_x = (true_x - last_frame_x) / (true_vx * true_v) if true_vx != 0 else 0
+        t_y = (true_y - last_frame_y) / (true_vy * true_v) if true_vy != 0 else 0
+
         cf_data.loc[mask, 'x'] = sample['x']
         cf_data.loc[mask, 'y'] = sample['y']
-        
+        # Calculate vx, vy based on actuaual x, y, last frame x, y and vx, vy and counterfactual x, y
+        cf_vx = (sample['x'] - last_frame_x) / t_x if t_x != 0 else (true_vx * true_v)
+        cf_vy = (sample['y'] - last_frame_y) / t_y if t_y != 0 else (true_vy * true_v)
+        cf_data.loc[mask, 'vx'] = cf_vx / np.sqrt(cf_vx**2 + cf_vy**2)
+        cf_data.loc[mask, 'vy'] = cf_vy / np.sqrt(cf_vx**2 + cf_vy**2)
+        # cf_data.loc[mask, 'angle_v'] = np.arctan2(cf_vy, cf_vx) #NOTE the angle_v feature is highly implausible in the original code
+        # we need to first judge which direction the goal is. This can be done by checking the min(x) and min(1-x) of the two teams. 
+        # for the team with min(x) smaller, the goal is on the right side.
+        # for the team with min(1-x) smaller, the goal is on the left side.
+        min_x, max_x = base_data_by_team.loc[team, 'x']
+        oppo_team = 1 - team
+        min_oppo_x, max_oppo_x = base_data_by_team.loc[oppo_team, 'x']
+        if min_x < min_oppo_x:
+            goal_x = 1
+        else:
+            goal_x = 0
+        cf_data.loc[mask, 'dist_goal'] = np.sqrt((goal_x - sample['x'])**2 + (0.5 - sample['y'])**2)
+        cf_data.loc[mask, 'angle_goal'] = np.arctan2(0.5 - sample['y'], goal_x - sample['x'])
+
+        cf_data.loc[mask, 'dist_ball'] = np.sqrt((ball_x - sample['x'])**2 + (ball_y - sample['y'])**2)
+        cf_data.loc[mask, 'angle_ball'] = np.arctan2(ball_y - sample['y'], ball_x - sample['x'])
+
+        # dist to left boundary and right boundary
+        cf_data.loc[mask, 'dist_to_left_boundary'] = sample['x']
+        cf_data.loc[mask, 'dist_to_right_boundary'] = 1 - sample['x']
+
         # Add to list
         counterfactual_datasets.append(cf_data)
     
@@ -341,7 +395,9 @@ def analyze_all_players(df_actual, df_loc, model, create_pyg_dataset, evaluate_s
         player_num_label = row['player_num_label']
         
         pbar.set_description(f"Analyzing Game {game_id}, Player {player_num_label}")
-        
+        if player_num_label == 0:
+            print(f"Skipping ball analysis for game {game_id}")
+            continue
         try:
             results = analyze_player_game_contribution(
                 df_actual, df_loc, model, create_pyg_dataset, evaluate_single_graph,
