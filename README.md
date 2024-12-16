@@ -75,8 +75,6 @@ streamlit run scripts/visualize_helper.py
 
 The **CounterEval** framework evaluates player contributions during soccer counterattacks using a combination of movement prediction and tactical analysis, implemented through Graph Neural Networks (GNNs). This section provides a comprehensive breakdown of the methodology.
 
----
-
 ## 1. Player Movement Prediction with Transformer-Enhanced Variational Autoencoder (VAE)
 
 To model player movements under counterattack scenarios, we employ a **Transformer-enhanced VAE**. The model predicts the next plausible locations of players given the current game context, serving as a baseline for counterfactual comparisons.
@@ -99,8 +97,6 @@ To model player movements under counterattack scenarios, we employ a **Transform
 
 ### Output:
 - Predicted player locations that serve as a proxy for "average" player movements under similar conditions.
-
----
 
 ## 2. Tactical Analysis with Graph Attention Networks (GAT)
 
@@ -131,8 +127,6 @@ To evaluate the success probability of a counterattack, we develop a **GAT-based
      \mathcal{L} = - \frac{1}{N} \sum_{i=1}^N \Big[ y_i \log \hat{y}_i + (1 - y_i) \log (1 - \hat{y}_i) \Big].
      \]
 
----
-
 ## 3. CounterEval Contribution Score
 
 The **CounterEval Contribution Score** measures the impact of individual players on the success of a counterattack by comparing their actual movements to predicted baseline movements.
@@ -160,8 +154,6 @@ The **CounterEval Contribution Score** measures the impact of individual players
      M(p) = \frac{1}{T} \sum_{t=t_1}^{t_2} \text{Score}(p, t).
      \]
 
----
-
 ## 4. Model Training and Evaluation Pipeline
 
 The overall pipeline ensures robust model development and evaluation:
@@ -179,7 +171,6 @@ The overall pipeline ensures robust model development and evaluation:
    - **Counterattack Success Prediction:** Accuracy, F1-Score, and AUC.
    - **Performance Metrics:** Player-level contribution scores.
 
----
 
 ## Summary
 
