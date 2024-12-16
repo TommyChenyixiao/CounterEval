@@ -21,7 +21,8 @@ def load_data():
     live_datasets = ["./processed_data/men_imbalanced_node_features.parquet", 
                      "./processed_data/women_imbalanced_node_features.parquet",
                      "./processed_data/women_imbalanced_node_features_numbered.parquet",
-                     "./processed_data/men_imbalanced_node_features_numbered.parquet"]
+                     "./processed_data/men_imbalanced_node_features_numbered.parquet",
+                     "./processed_data/men_imbalanced_node_features_checked.parquet"]
     static_datasets = ["./processed_data/men_node_features.parquet", "./processed_data/women_node_features.parquet"]
     dataset_type = st.sidebar.radio("Select Dataset", ["Live", "Static"])
     
